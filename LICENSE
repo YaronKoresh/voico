@@ -1,0 +1,410 @@
+UNIVERSAL COPYLEFT SOURCE LICENSE (UCSL-1.0)
+
+TERMS AND CONDITIONS GOVERNING USE, REPRODUCTION, DEPLOYMENT, MODIFICATION, AND
+DISTRIBUTION
+
+PREAMBLE
+
+WHEREAS, the paramount, immutable, and overriding objective of this Instrument
+is to secure, in perpetuity, the unalienable liberty of the Licensee, and all
+subsequent recipients, heirs, successors, and assigns, to disseminate, examine,
+scrutinize, and modify all iterations of the Software without hindrance,
+proprietary obfuscation, legal encumbrance, or technological restriction; and
+
+WHEREAS, it is the express, declared, and manifest intent of the Licensor(s) to
+ensure that the Software remains unencumbered for the communal benefit of all
+users, whilst simultaneously safeguarding the proprietary rights, moral rights
+(where applicable), and reputational integrity of the Licensor(s) against
+misappropriation, misrepresentation, or unauthorized distinctiveness; and
+
+WHEREAS, the advancement of the digital arts and the preservation of the
+technological commons necessitates a robust, defensible, and comprehensive
+legal framework that explicitly prevents the enclosure of the commons through
+the utilization of restrictive patent claims, the withholding of essential
+source code, or the imposition of digital rights management schemes that
+contravene the user's autonomy; and
+
+WHEREAS, the Licensor(s) desire to permit the unrestricted commercial and
+private utilization of the Software, provided that such utilization does not
+infringe upon, diminish, or abrogate the reciprocal obligations of
+transparency, attribution, and shared improvement inherent in the copyleft
+philosophy; and
+
+WHEREAS, the parties acknowledge that the freedom to run, copy, distribute,
+study, change, and improve the software are rights of paramount importance that
+supersede any temporary commercial advantage gained by the suppression of the
+source code; and
+
+WHEREAS, strictly to prevent the commoditization of the Software in a manner
+that deprives the community of improvements, strict adherence to the provisions
+of source disclosure and patent safety is mandated;
+
+NOW, THEREFORE, in consideration of the mutual covenants, promises, and
+warranties contained herein, and for other good and valuable consideration, the
+receipt and sufficiency of which is hereby acknowledged, the Licensor(s) hereby
+mandate that any Derivative Works, howsoever generated, shall be governed by
+these identical terms, thereby establishing a permanent, indivisible, and
+self-perpetuating commons of accessible code.
+
+ARTICLE 1. DEFINITIONS AND INTERPRETATIONS
+
+1.1. "Instrument" shall be strictly and narrowly construed to denote the terms,
+covenants, conditions, stipulations, provisos, and obligations for use,
+reproduction, and distribution as set forth within this document, functioning
+as the binding, exclusive, and final legal agreement between the Licensor and
+the Licensee.
+
+1.2. "Licensor" shall be construed to denote the original copyright holder(s),
+or the entity (or entities) explicitly and legally authorized by said copyright
+holder(s), to grant the rights, privileges, and immunities contained within
+this Instrument.
+
+1.3. "Legal Entity" shall be construed to denote the union of the acting entity
+and all other entities that control, are controlled by, or are under common
+control with that entity. For the purposes of this definition, "control" shall
+be interpreted as (i) the power, direct or indirect, to cause the direction,
+policy, or management of such entity, whether by contract, governing
+instrument, or otherwise, or (ii) ownership of fifty percent (50%) or more of
+the outstanding shares or securities, or (iii) beneficial ownership of such
+entity.
+
+1.4. "Licensee" shall be construed to denote any individual, organization, or
+Legal Entity exercising permissions or rights granted pursuant to this
+Instrument.
+
+1.5. "Software" shall be construed to denote the copyrightable work of
+authorship, whether in Source or Object form, made available under the
+authority of this Instrument, including but not limited to computer code, data
+structures, distinct interfaces, associated documentation, and any audio-visual
+content embedded therein.
+
+1.6. "Source Code" shall be construed to denote the preferred form of the work
+for making modifications, including but not limited to software source code,
+documentation source, configuration files, interface definition files, and
+compilation scripts utilized to control compilation and installation of an
+executable. To be considered valid under this Instrument, Source Code must be
+transparent, human-readable, and devoid of intermediate forms of obfuscation,
+pre-processing, or binary-only blobs that hinder modification.
+
+1.7. "Corresponding Source" shall be construed to denote the entirety of the
+Source Code for the work, including all interface definition files, in addition
+to the scripts utilized to control compilation and installation of the
+executable. Notwithstanding the foregoing, this definition shall not encompass
+the work's System Libraries, or general-purpose tools or generally available
+free programs which are utilized unmodified in performing those activities but
+which are not part of the work.
+
+1.8. "System Libraries" shall be construed to denote any software or library
+that (a) is included in the normal form of packaging a Major Component, but
+which is not part of that Major Component, and (b) serves only to enable use of
+the work with that Major Component, or to implement a Standard Interface for
+which an implementation is available to the public in Source Code form. A
+"Major Component", within this context, shall signify a major essential
+component (including, inter alia, the kernel or window system) of the specific
+operating system (if any) on which the executable work operates, or a compiler
+utilized to produce the work, or an object code interpreter utilized to execute
+it.
+
+1.9. "Object Code" shall be construed to denote any non-source form of a work,
+including but not limited to compiled object code, generated documentation,
+byte-code, and conversions to other media types or formats.
+
+1.10. "Derivative Works" shall be construed to denote any work, whether in
+Source or Object form, that is based on (or derived from) the Software,
+including revisions, annotations, elaborations, translations, portations, or
+other modifications which, as a whole, represent an original work of
+authorship. For the avoidance of doubt, where the Software is part of a larger
+work or "Combined Work" that links or binds the Software with other code
+(whether statically or dynamically), the entire combination constitutes a
+Derivative Work.
+
+1.11. "Contribution" shall be construed to denote any work of authorship,
+including the original version of the Software and any modifications or
+additions to that Work or Derivative Works thereof, that is intentionally
+submitted to the Licensor for inclusion in the Software by the copyright owner
+or by an individual or Legal Entity authorized to submit on behalf of the
+copyright owner. For the purposes of this definition, "submitted" shall mean
+any form of electronic, verbal, or written communication transmitted to the
+Licensor or its representatives, including but not limited to communication on
+electronic mailing lists, source code control systems, and issue tracking
+systems.
+
+1.12. "Contributor" shall be construed to denote the Licensor and any
+individual or Legal Entity on behalf of whom a Contribution has been received
+by the Licensor and subsequently incorporated within the Software.
+
+1.13. "Distribute" shall be construed to denote the act of rendering the
+Software or Derivative Works available to any third party, whether by physical
+transfer, network download, peer-to-peer file sharing, or any other method of
+transmission or access.
+
+1.14. "Installation Information" shall be construed to denote any methods,
+procedures, authorization keys, or other information required to install and
+execute modified versions of the Software or Derivative Works on a User
+Product.
+
+1.15. "User Product" shall be construed to denote (1) a "consumer product",
+which is any tangible personal property which is normally used for personal,
+family, or household purposes, or (2) anything designed or sold for
+incorporation into a dwelling.
+
+1.16. Rules of Construction. Unless the context otherwise requires, words
+importing the singular include the plural and vice versa. The definitions of
+"Licensor", "Contributor", and "Copyright Holder" shall be interpreted to
+encompass singular individuals, groups of individuals, or single or multiple
+Legal Entities, as the case may be.
+
+ARTICLE 2. GRANT OF RIGHTS
+
+2.1. Grant of Copyright License. Subject to strict compliance with the terms
+and conditions of this Instrument, a perpetual, worldwide, non-exclusive,
+no-charge, royalty-free, irrevocable copyright license is hereby conferred by
+each Contributor upon the Licensee to:
+
+   (a) reproduce the Software in copies, whether in physical or electronic
+       media;
+
+   (b) prepare Derivative Works based upon the Software, including the
+       translation and adaptation of the code into different programming
+       languages;
+
+   (c) publicly display and publicly perform the Software;
+
+   (d) sublicense the Software (strictly under the terms of this Instrument);
+       and
+
+   (e) Distribute the Software and such Derivative Works in Source or Object
+       form.
+
+2.2. Grant of Patent License. Subject to the terms and conditions of this
+Instrument, a perpetual, worldwide, non-exclusive, no-charge, royalty-free,
+irrevocable (except as stated in Section 2.3) patent license is hereby
+conferred by each Contributor upon the Licensee to make, have made, use, offer
+to sell, sell, import, and otherwise transfer the Software. This license
+applies solely to those patent claims licensable by such Contributor that are
+necessarily infringed by their Contribution(s) alone or by combination of their
+Contribution(s) with the Software to which such Contribution(s) was submitted.
+
+2.3. Patent Retaliation and Defense. In the event that patent litigation is
+instituted by the Licensee against any entity (including a cross-claim or
+counterclaim in a lawsuit) alleging that the Software or a Contribution
+incorporated within the Software constitutes direct or contributory patent
+infringement, then any and all patent licenses granted to the Licensee under
+this Instrument for said Software shall be deemed automatically terminated as
+of the date such litigation is filed.
+
+ARTICLE 3. CONDITIONS AND RESTRICTIONS
+
+The rights enumerated in Article 2 are strictly predicated upon compliance with
+the following provisions:
+
+3.1. Obligation of Corresponding Source Disclosure.
+
+   (a) Availability Mechanism: Should the Software or any Derivative Works be
+       Distributed by the Licensee in any form (including binary, object code,
+       or executable form), the Corresponding Source for the Software and/or
+       Derivative Works must be rendered accessible to all recipients. Said
+       Corresponding Source shall be provided via a standard network mechanism
+       (e.g., a publicly accessible repository or server) at no charge. The
+       mechanism must be prominent, reliable, and clearly communicated to the
+       recipient.
+
+   (b) Completeness of Disclosure: The Corresponding Source must include
+       everything needed to generate, install, and (for an executable work) run
+       the Object Code and to modify the work, including scripts to control
+       those activities.
+
+   (c) Duration and Integrity: The Corresponding Source must remain accessible
+       for a duration of no less than three (3) years from the last date of
+       distribution of the binary, or for as long as the Licensee offers
+       customer support for that model, whichever period is longer.
+
+3.2. Installation Information (Anti-Tivoization).
+In the event that the Licensee Distributes the Software or Derivative Works in,
+or for use with, a User Product, the Licensee is obligated to provide
+Installation Information alongside the Corresponding Source. This requirement
+is intended to ensure that the recipient possesses the ability to install and
+execute modified versions of the Software on the User Product, thereby
+preserving the user's freedom to modify the software they utilize. The Licensee
+shall not restrict the installation of modified software through the use of
+digital signatures, cryptographic keys, or hardware limitations unless the
+requisite keys or codes to bypass such restrictions are expressly provided to
+the recipient. The provision of Installation Information must be sufficient to
+ensure that the continued functioning of the modified object code is in no case
+prevented or interfered with solely because modification has been made.
+
+3.3. Strict Copyleft Covenant.
+
+   (a) Viral Scope: No further restrictions shall be imposed by the Licensee on
+       the exercise of the rights granted or affirmed under this Instrument.
+       Any Derivative Works Distributed by the Licensee must be Distributed
+       under the terms of THIS Instrument and no other.
+
+   (b) Prohibition on Sublicensing: The sublicensing of the Software or
+       Derivative Works under terms differing from this Instrument is strictly
+       prohibited. This Copyleft condition shall apply to the work in its
+       entirety, including all linked components, libraries, and modules that
+       form a single unified program, with the sole exception of System
+       Libraries as defined in Section 1.8.
+
+   (c) Aggregate Works Exception: The mere aggregation of another work not
+       based on the Software with the Software (or with a work based on the
+       Software) on a volume of a storage or distribution medium shall not
+       cause said other work to fall under the scope of this Instrument,
+       provided that the aggregation does not form a single logical program.
+
+3.4. Preservation of Notices and Attribution.
+
+   (a) All copyright, patent, trademark, and attribution notices contained
+       within the Source form of the Software must be retained in the Source
+       form of any Derivative Works distributed by the Licensee, excluding
+       those notices that do not pertain to any part of the Derivative Works.
+
+   (b) If the Software includes a "NOTICE" text file as part of its
+       distribution, then any Derivative Works Distributed by the Licensee must
+       include a readable copy of the attribution notices contained within such
+       NOTICE file.
+
+ARTICLE 4. RESERVATION OF TRADEMARK AND INTELLECTUAL PROPERTY RIGHTS
+
+4.1. No Trademark License. Nothing in this Instrument shall be construed as
+granting permission, privilege, or license to utilize the trade names,
+trademarks, service marks, logos, or product names of the Licensor or any
+Contributor, except as strictly required for reasonable and customary use in
+describing the origin of the Software and reproducing the content of the NOTICE
+file.
+
+4.2. Protection of Brand Integrity. The Licensee shall not utilize the
+trademarks of the Licensor in a manner that suggests endorsement, sponsorship,
+or affiliation where none exists. The name of the Licensor or the names of any
+Contributors shall not be utilized to endorse or promote products derived from
+this Software without specific prior written permission. The Licensor reserves
+the right to require the Licensee to remove any such names or marks from
+Derivative Works if the Licensee's modifications are deemed, in the Licensor's
+sole discretion, to be damaging to the Licensor's reputation.
+
+ARTICLE 5. SPECIFIC DISCLAIMER FOR HIGH-RISK ACTIVITIES
+
+The Software is not designed, intended, authorized, or warranted to be suitable
+for use in environments or applications requiring fail-safe performance,
+including but not limited to:
+
+   (a) the operation of nuclear facilities;
+   (b) aircraft navigation, communication, or flight control systems;
+   (c) air traffic control systems;
+   (d) direct life support machines;
+   (e) weapons systems; or
+   (f) any other application in which the failure of the Software could lead
+       directly to death, personal injury, or severe physical or environmental
+       damage ("High Risk Activities").
+
+The Licensor and Contributors specifically disclaim any express or implied
+warranty of fitness for such High Risk Activities.
+
+ARTICLE 6. TERMINATION AND REINSTATEMENT OF RIGHTS
+
+6.1. Automatic Termination for Breach. This Instrument and the rights,
+licenses, and immunities granted hereunder shall automatically terminate in the
+event of non-compliance by the Licensee with any term herein.
+
+6.2. Provision for Cure of Breach. Notwithstanding the foregoing, should the
+Licensee cease all acts constituting a violation of this Instrument, then the
+Licensee's license from a particular Contributor shall be reinstated (a)
+provisionally, unless and until such Contributor explicitly and finally
+terminates the license, and (b) permanently, provided that the Contributor
+fails to notify the Licensee of the violation by some reasonable means prior to
+sixty (60) days following the cessation of the violation.
+
+6.3. Survival of Obligations. Upon termination, those provisions which by their
+nature are intended to survive (including, but not limited to, Articles 4, 5,
+6, 7, 8, 9, and 10) shall continue in full force and effect.
+
+ARTICLE 7. DISCLAIMER OF WARRANTY
+
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE SOFTWARE IS PROVIDED "AS
+IS" AND WITH ALL FAULTS, ERRORS, AND DEFECTS. THE LICENSOR AND CONTRIBUTORS
+HEREBY DISCLAIM ALL WARRANTIES AND CONDITIONS, WHETHER EXPRESS, IMPLIED, OR
+STATUTORY, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, QUIET ENJOYMENT,
+ACCURACY, AND NON-INFRINGEMENT. THE ENTIRE RISK AS TO THE QUALITY, SAFETY, AND
+PERFORMANCE OF THE SOFTWARE IS BORNE BY THE LICENSEE. SHOULD THE SOFTWARE PROVE
+DEFECTIVE, THE LICENSEE ASSUMES THE COST OF ALL NECESSARY SERVICING, REPAIR, OR
+CORRECTION. NO ORAL OR WRITTEN INFORMATION OR ADVICE GIVEN BY THE LICENSOR OR
+AN AUTHORIZED REPRESENTATIVE SHALL CREATE A WARRANTY.
+
+ARTICLE 8. LIMITATION OF LIABILITY
+
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL THE
+LICENSOR OR ANY CONTRIBUTOR BE LIABLE TO THE LICENSEE FOR ANY DAMAGES
+WHATSOEVER, INCLUDING WITHOUT LIMITATION, DIRECT, INDIRECT, SPECIAL,
+INCIDENTAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, ARISING OUT OF OR RELATING TO
+THIS INSTRUMENT OR THE USE OR INABILITY TO USE THE SOFTWARE (INCLUDING BUT NOT
+LIMITED TO DAMAGES FOR LOSS OF GOODWILL, WORK STOPPAGE, COMPUTER FAILURE OR
+MALFUNCTION, DATA CORRUPTION, OR ANY AND ALL OTHER COMMERCIAL DAMAGES OR
+LOSSES), EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES. UNDER NO
+CIRCUMSTANCES SHALL THE AGGREGATE LIABILITY OF THE LICENSOR (OR CONTRIBUTORS)
+EXCEED THE AMOUNT PAID BY THE LICENSEE, IF ANY, FOR ACCESS TO THE SOFTWARE.
+
+ARTICLE 9. EXPORT CONTROL COMPLIANCE
+
+The Licensee hereby acknowledges that the Software may be subject to export
+control laws and regulations of the United States of America (including the
+Export Administration Regulations "EAR") or other relevant jurisdictions. The
+Licensee agrees to strictly comply with all applicable international and
+national laws that apply to the Software, including the U.S. Export
+Administration Regulations, as well as end-user, end-use, and destination
+restrictions issued by U.S. and other governments. The Licensee warrants that
+they are not a person or entity prohibited from receiving exports from the
+United States or their local jurisdiction, nor are they a national of any
+country subject to a U.S. embargo. The Licensee further agrees not to export or
+re-export the Software to any prohibited country, entity, or person, including
+but not limited to those on the U.S. Treasury Department’s list of Specially
+Designated Nationals or the U.S. Department of Commerce’s Denied Persons List.
+
+ARTICLE 10. GENERAL PROVISIONS
+
+10.1. Governing Law and Venue. This Instrument shall be governed by and
+construed in accordance with the domestic laws of the jurisdiction wherein the
+Licensor maintains its principal place of business or, in the event the
+Licensor is an individual, the jurisdiction of their primary residence, without
+regard to its conflict of law provisions. The parties hereby unequivocally
+consent to the exclusive personal jurisdiction and venue of the competent
+courts located within said jurisdiction for any and all legal actions,
+disputes, or controversies arising out of or relating to this Instrument.
+
+10.2. Integration and Modification. This Instrument constitutes the entire
+agreement concerning the subject matter hereof and supersedes all prior
+agreements and representations between the parties. No modification of this
+Instrument shall be binding unless in writing and signed by an authorized
+representative of the Licensor (or Licensors, if applicable).
+
+10.3. Non-Waiver. No waiver of any term of this Instrument shall be deemed a
+further or continuing waiver of such term or any other term, and the failure of
+the Licensor to assert any right or provision under this Instrument shall not
+constitute a waiver of such right or provision.
+
+10.4. Severability. If any provision of this Instrument is held to be
+unenforceable or invalid by a court of competent jurisdiction, such provision
+shall be reformed only to the extent necessary to make it enforceable. The
+remaining provisions of this Instrument shall remain in full force and effect.
+
+10.5. Assignment. The Licensee may not assign or transfer this Instrument or
+any rights granted hereunder without the prior written consent of the Licensor.
+The Licensor may assign this Instrument at any time without notice.
+
+10.6. Force Majeure. Neither party shall be liable for any failure or delay in
+performance under this Instrument (other than for delay in the payment of money
+due and payable hereunder) to the extent said failures or delays are
+proximately caused by causes beyond that party's reasonable control and
+occurring without its fault or negligence.
+
+10.7. Headings. The headings contained in this Instrument are inserted for
+convenience of reference only and shall not affect the construction or
+interpretation of this Instrument.
+
+10.8. Third Party Beneficiaries. Nothing in this Instrument is intended to
+create any third-party beneficiaries, and no person or entity other than the
+Licensor and the Licensee shall have any rights or remedies under this
+Instrument.
+
+END OF TERMS AND CONDITIONS
