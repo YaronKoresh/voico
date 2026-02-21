@@ -7,6 +7,8 @@ name = "voico"
 version = "0.1.0"
 description = "Modular Voice Converter"
 readme = "README.md"
+license = {text = "UCSL-1.0"}
+license-files = ["LICENSE"]
 requires-python = ">=3.8"
 dependencies = [
     "numpy",
