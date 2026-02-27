@@ -7,6 +7,7 @@ import scipy.io.wavfile as wav
 from scipy.signal import resample_poly
 
 from ..core.constants import AudioConstants
+from ..core.errors import AudioLoadError, AudioSaveError
 
 try:
     import librosa
@@ -21,70 +22,51 @@ logger = logging.getLogger(__name__)
 def load_audio(
     path: str, target_sr: Optional[int] = None
 ) -> Tuple[np.ndarray, int]:
-    """
-    Robust audio loader that handles various bit depths, stereo-to-mono conversion,
-    and resampling using Librosa (if available) or Scipy fallback.
-    """
-    if LIBROSA_AVAILABLE:
-        y, sr = librosa.load(path, sr=target_sr, mono=True)
-        return y, sr
-
     try:
-        sr_file, y = wav.read(path)
-    except ValueError as e:
-        logger.error(f"Failed to read wav file: {e}")
+        if LIBROSA_AVAILABLE:
+            audio, sample_rate = librosa.load(path, sr=target_sr, mono=True)
+            return audio, sample_rate
+
+        file_sample_rate, audio = wav.read(path)
+        sample_rate = file_sample_rate
+
+        if audio.dtype == np.int16:
+            audio = audio.astype(np.float32) / 32768.0
+        elif audio.dtype == np.int32:
+            audio = audio.astype(np.float32) / 2147483648.0
+        elif audio.dtype == np.uint8:
+            audio = (audio.astype(np.float32) - 128.0) / 128.0
+        elif audio.dtype not in [np.float32, np.float64]:
+            audio = audio.astype(np.float32)
+
+        if len(audio.shape) > 1:
+            audio = np.mean(audio, axis=1)
+
+        if target_sr is not None and target_sr != sample_rate:
+            divisor = gcd(target_sr, sample_rate)
+            up = target_sr // divisor
+            down = sample_rate // divisor
+            audio = resample_poly(audio, up, down).astype(np.float32)
+            sample_rate = target_sr
+
+        return audio, sample_rate
+    except AudioLoadError:
         raise
-
-    sr = sr_file
-
-    if y.dtype == np.int16:
-        y = y.astype(np.float32) / 32768.0
-    elif y.dtype == np.int32:
-        y = y.astype(np.float32) / 2147483648.0
-    elif y.dtype == np.uint8:
-        y = (y.astype(np.float32) - 128.0) / 128.0
-    elif y.dtype not in [np.float32, np.float64]:
-        y = y.astype(np.float32)
-
-    if len(y.shape) > 1:
-        y = np.mean(y, axis=1)
-
-    if target_sr is not None and target_sr != sr:
-        g = gcd(target_sr, sr)
-        up = target_sr // g
-        down = sr // g
-        y = resample_poly(y, up, down).astype(np.float32)
-        sr = target_sr
-
-    return y, sr
+    except Exception as e:
+        raise AudioLoadError(f"Failed to load '{path}': {e}") from e
 
 
-def normalize_audio(y: np.ndarray, target_peak: float = 0.95) -> np.ndarray:
-    """Normalizes audio to a target peak amplitude."""
-    peak = np.max(np.abs(y))
+def normalize_audio(audio: np.ndarray, target_peak: float = 0.95) -> np.ndarray:
+    peak = np.max(np.abs(audio))
     if peak > AudioConstants.EPSILON:
-        return y * (target_peak / peak)
-    return y
+        return audio * (target_peak / peak)
+    return audio
 
 
-def apply_audio_gate(
-    y: np.ndarray, threshold_db: float = -60.0
-) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Applies a hard gate to silence noise below a threshold.
-    Returns (gated_audio, non_silent_mask).
-    """
-    threshold_amp = 10 ** (threshold_db / 20.0)
-    silence_mask = np.abs(y) < threshold_amp
-    y_gated = y.copy()
-    y_gated[silence_mask] = 0.0
-    return y_gated, ~silence_mask
-
-
-def save_audio(path: str, y: np.ndarray, sr: int):
-    """Saves audio to disk, ensuring 16-bit PCM format."""
-
-    y = np.clip(y, -1.0, 1.0)
-
-    y_int16 = (y * 32767).astype(np.int16)
-    wav.write(path, sr, y_int16)
+def save_audio(path: str, audio: np.ndarray, sample_rate: int) -> None:
+    try:
+        audio = np.clip(audio, -1.0, 1.0)
+        audio_int16 = (audio * 32767).astype(np.int16)
+        wav.write(path, sample_rate, audio_int16)
+    except Exception as e:
+        raise AudioSaveError(f"Failed to save '{path}': {e}") from e

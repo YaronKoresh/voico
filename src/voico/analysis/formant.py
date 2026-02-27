@@ -22,149 +22,167 @@ class FormantAnalyzer:
         n_formants: int = 5,
         lpc_order: int = 14,
     ):
-        self.sr = sample_rate
+        self.sample_rate = sample_rate
         self.hop_length = hop_length
         self.n_formants = n_formants
-        self.analysis_sr = AudioConstants.FORMANT_ANALYSIS_SR
+        self.analysis_sample_rate = AudioConstants.FORMANT_ANALYSIS_SR
         self.lpc_order = lpc_order
 
-    def analyze(self, y: np.ndarray, f0_contour: np.ndarray) -> FormantTrack:
-
+    def analyze(
+        self, audio: np.ndarray, f0_contour: np.ndarray
+    ) -> FormantTrack:
         if LIBROSA_AVAILABLE:
-            y_analysis = librosa.resample(
-                y, orig_sr=self.sr, target_sr=self.analysis_sr
+            resampled_audio = librosa.resample(
+                audio,
+                orig_sr=self.sample_rate,
+                target_sr=self.analysis_sample_rate,
             )
         else:
-            ratio = max(1, int(self.sr / self.analysis_sr))
+            ratio = max(1, int(self.sample_rate / self.analysis_sample_rate))
             if ratio > 1:
-                nyq = 0.5 * self.sr
-                cutoff = 0.5 * self.analysis_sr / nyq
+                nyquist = 0.5 * self.sample_rate
+                cutoff = 0.5 * self.analysis_sample_rate / nyquist
                 if cutoff < 1.0:
-                    sos_aa = butter(4, cutoff, btype="low", output="sos")
-                    y_filtered = sosfiltfilt(sos_aa, y)
+                    anti_alias_filter = butter(
+                        4, cutoff, btype="low", output="sos"
+                    )
+                    filtered_audio = sosfiltfilt(anti_alias_filter, audio)
                 else:
-                    y_filtered = y
-                y_analysis = y_filtered[::ratio]
+                    filtered_audio = audio
+                resampled_audio = filtered_audio[::ratio]
             else:
-                y_analysis = y.copy()
+                resampled_audio = audio.copy()
 
         n_frames = len(f0_contour)
-        freqs = np.zeros((self.n_formants, n_frames))
-        bws = np.zeros((self.n_formants, n_frames))
+        frequencies = np.zeros((self.n_formants, n_frames))
+        bandwidths = np.zeros((self.n_formants, n_frames))
 
-        frame_len = int(0.025 * self.analysis_sr)
-        hop_analysis = max(1, len(y_analysis) // n_frames)
+        frame_length = int(0.025 * self.analysis_sample_rate)
+        analysis_hop = max(1, len(resampled_audio) // n_frames)
 
         for t in range(n_frames):
-            start = t * hop_analysis
-            end = start + frame_len
-            if end > len(y_analysis):
-                end = len(y_analysis)
-                start = max(0, end - frame_len)
+            start = t * analysis_hop
+            end = start + frame_length
+            if end > len(resampled_audio):
+                end = len(resampled_audio)
+                start = max(0, end - frame_length)
 
-            frame = y_analysis[start:end].astype(np.float64)
+            frame = resampled_audio[start:end].astype(np.float64)
             if len(frame) < self.lpc_order + 2:
                 continue
 
             frame = np.append(frame[0], frame[1:] - 0.97 * frame[:-1])
 
-            win = get_window("hamming", len(frame))
-            frame = frame * win
+            window = get_window("hamming", len(frame))
+            frame = frame * window
 
-            f0_val = f0_contour[t] if t < len(f0_contour) else 0.0
+            f0_value = f0_contour[t] if t < len(f0_contour) else 0.0
             if (
-                np.isfinite(f0_val)
-                and f0_val < AudioConstants.PITCH_THRESHOLD_LOW
+                np.isfinite(f0_value)
+                and f0_value < AudioConstants.PITCH_THRESHOLD_LOW
             ):
                 order = AudioConstants.LPC_ORDER_LOW_PITCH
             else:
                 order = self.lpc_order
             order = min(order, len(frame) - 2)
 
-            lpc_coeffs = self._levinson_durbin(frame, order)
-            if lpc_coeffs is None:
+            lpc_coefficients = self._levinson_durbin(frame, order)
+            if lpc_coefficients is None:
                 continue
 
-            f_freqs, f_bws = self._lpc_to_formants(lpc_coeffs, self.analysis_sr)
+            frame_frequencies, frame_bandwidths = self._lpc_to_formants(
+                lpc_coefficients, self.analysis_sample_rate
+            )
 
-            n_found = min(len(f_freqs), self.n_formants)
-            freqs[:n_found, t] = f_freqs[:n_found]
-            bws[:n_found, t] = f_bws[:n_found]
+            n_found = min(len(frame_frequencies), self.n_formants)
+            frequencies[:n_found, t] = frame_frequencies[:n_found]
+            bandwidths[:n_found, t] = frame_bandwidths[:n_found]
 
         for i in range(self.n_formants):
-            valid = freqs[i] > 0
+            valid = frequencies[i] > 0
             if np.sum(valid) > 5:
                 kernel = min(5, np.sum(valid) // 2 * 2 + 1)
                 if kernel >= 3:
-                    freqs[i, valid] = medfilt(
-                        freqs[i, valid], kernel_size=kernel
+                    frequencies[i, valid] = medfilt(
+                        frequencies[i, valid], kernel_size=kernel
                     )
 
-        mean_freqs = np.zeros(self.n_formants)
-        mean_bws = np.zeros(self.n_formants)
+        mean_frequencies = np.zeros(self.n_formants)
+        mean_bandwidths = np.zeros(self.n_formants)
         for i in range(self.n_formants):
-            valid = freqs[i] > 0
+            valid = frequencies[i] > 0
             if np.sum(valid) > 0:
-                mean_freqs[i] = np.median(freqs[i, valid])
-                mean_bws[i] = np.median(bws[i, valid])
+                mean_frequencies[i] = np.median(frequencies[i, valid])
+                mean_bandwidths[i] = np.median(bandwidths[i, valid])
             else:
-                mean_freqs[i] = AudioConstants.DEFAULT_FORMANT_FREQS[i]
-                mean_bws[i] = AudioConstants.DEFAULT_FORMANT_BANDWIDTHS[i]
+                mean_frequencies[i] = AudioConstants.DEFAULT_FORMANT_FREQS[i]
+                mean_bandwidths[i] = AudioConstants.DEFAULT_FORMANT_BANDWIDTHS[
+                    i
+                ]
 
-        return FormantTrack(freqs, bws, mean_freqs, mean_bws)
+        return FormantTrack(
+            frequencies, bandwidths, mean_frequencies, mean_bandwidths
+        )
 
     def _levinson_durbin(
         self, frame: np.ndarray, order: int
     ) -> Optional[np.ndarray]:
-        r = np.correlate(frame, frame, mode="full")
-        r = r[len(frame) - 1 :]
-        r = r[: order + 1]
+        autocorrelation = np.correlate(frame, frame, mode="full")
+        autocorrelation = autocorrelation[len(frame) - 1 :]
+        autocorrelation = autocorrelation[: order + 1]
 
-        if r[0] < AudioConstants.EPSILON:
+        if autocorrelation[0] < AudioConstants.EPSILON:
             return None
 
         try:
-            a = np.zeros(order + 1)
-            a[0] = 1.0
-            e = r[0]
+            coefficients = np.zeros(order + 1)
+            coefficients[0] = 1.0
+            prediction_error = autocorrelation[0]
 
             for i in range(1, order + 1):
-                lam = -np.sum(a[1:i] * r[i - 1 : 0 : -1]) - r[i]
-                lam /= e
+                reflection_coeff = (
+                    -np.sum(coefficients[1:i] * autocorrelation[i - 1 : 0 : -1])
+                    - autocorrelation[i]
+                )
+                reflection_coeff /= prediction_error
 
-                a_new = a.copy()
+                updated = coefficients.copy()
                 for j in range(1, i):
-                    a_new[j] = a[j] + lam * a[i - j]
-                a_new[i] = lam
-                a = a_new
+                    updated[j] = (
+                        coefficients[j] + reflection_coeff * coefficients[i - j]
+                    )
+                updated[i] = reflection_coeff
+                coefficients = updated
 
-                e *= 1.0 - lam * lam
-                if e <= 0:
+                prediction_error *= 1.0 - reflection_coeff * reflection_coeff
+                if prediction_error <= 0:
                     return None
-            return a
+            return coefficients
         except (np.linalg.LinAlgError, FloatingPointError):
             return None
 
     def _lpc_to_formants(
-        self, lpc_coeffs: np.ndarray, sr: int
+        self, lpc_coefficients: np.ndarray, sample_rate: int
     ) -> Tuple[np.ndarray, np.ndarray]:
-        roots = np.roots(lpc_coeffs)
+        roots = np.roots(lpc_coefficients)
         roots = roots[np.imag(roots) >= 0]
 
         angles = np.angle(roots)
-        freqs = angles * sr / (2.0 * np.pi)
-        bws = (
-            -sr / (2.0 * np.pi) * np.log(np.abs(roots) + AudioConstants.EPSILON)
+        frequencies = angles * sample_rate / (2.0 * np.pi)
+        bandwidths = (
+            -sample_rate
+            / (2.0 * np.pi)
+            * np.log(np.abs(roots) + AudioConstants.EPSILON)
         )
 
         valid = (
-            (freqs > 90)
-            & (freqs < sr / 2 - 50)
-            & (bws > 0)
-            & (bws < AudioConstants.MAX_FORMANT_BANDWIDTH)
+            (frequencies > 90)
+            & (frequencies < sample_rate / 2 - 50)
+            & (bandwidths > 0)
+            & (bandwidths < AudioConstants.MAX_FORMANT_BANDWIDTH)
         )
-        freqs = freqs[valid]
-        bws = bws[valid]
+        frequencies = frequencies[valid]
+        bandwidths = bandwidths[valid]
 
-        order = np.argsort(freqs)
-        return freqs[order], bws[order]
+        sort_order = np.argsort(frequencies)
+        return frequencies[sort_order], bandwidths[sort_order]

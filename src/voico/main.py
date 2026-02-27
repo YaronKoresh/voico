@@ -4,13 +4,13 @@ import os
 import sys
 from pathlib import Path
 
-sys.path.append(str(Path(__file__).parent.parent))
-
 from .converter import VoiceConverter
 from .core.config import ConversionQuality
 
+logger = logging.getLogger(__name__)
 
-def setup_logging(verbose: bool):
+
+def setup_logging(verbose: bool) -> None:
     level = logging.DEBUG if verbose else logging.INFO
     logging.basicConfig(
         level=level,
@@ -19,13 +19,14 @@ def setup_logging(verbose: bool):
     )
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Voico: Modular Voice Converter"
     )
 
     parser.add_argument(
-        "input_file", help="Path to input audio file (Source Voice)"
+        "input_file",
+        help="Path to input audio file (Source Voice)",
     )
     parser.add_argument(
         "-t",
@@ -34,9 +35,11 @@ def parse_args():
         default=None,
     )
     parser.add_argument(
-        "-o", "--output", help="Path to output file", default=None
+        "-o",
+        "--output",
+        help="Path to output file",
+        default=None,
     )
-
     parser.add_argument(
         "-p",
         "--pitch",
@@ -51,7 +54,6 @@ def parse_args():
         default=1.0,
         help="Manual formant shift factor (overridden if Target is provided)",
     )
-
     parser.add_argument(
         "-q",
         "--quality",
@@ -60,48 +62,48 @@ def parse_args():
         default="balanced",
         help="Processing quality preset",
     )
-
     parser.add_argument(
-        "-v", "--verbose", action="store_true", help="Enable debug logging"
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Enable debug logging",
     )
 
     return parser.parse_args()
 
 
-def main():
+def main() -> None:
     args = parse_args()
     setup_logging(args.verbose)
 
     if not os.path.exists(args.input_file):
-        print(f"Error: Input file '{args.input_file}' not found.")
+        logger.error(f"Input file '{args.input_file}' not found.")
         sys.exit(1)
 
     if args.target and not os.path.exists(args.target):
-        print(f"Error: Target file '{args.target}' not found.")
+        logger.error(f"Target file '{args.target}' not found.")
         sys.exit(1)
 
     if args.output:
-        out_path = args.output
+        output_path = args.output
     else:
         base, ext = os.path.splitext(args.input_file)
         if args.target:
             target_name = Path(args.target).stem
-            out_path = f"{base}_to_{target_name}{ext}"
+            output_path = f"{base}_to_{target_name}{ext}"
         else:
-            out_path = f"{base}_shifted_p{args.pitch}_f{args.formant}{ext}"
+            output_path = f"{base}_shifted_p{args.pitch}_f{args.formant}{ext}"
 
     try:
         quality = ConversionQuality(args.quality)
         converter = VoiceConverter(quality)
-
         converter.process(
             input_path=args.input_file,
-            output_path=out_path,
+            output_path=output_path,
             pitch_shift=args.pitch,
             formant_shift=args.formant,
             target_path=args.target,
         )
-
     except Exception as e:
         logging.error(f"Conversion failed: {e}", exc_info=args.verbose)
         sys.exit(1)

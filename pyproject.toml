@@ -43,21 +43,20 @@ packages = ["src/voico"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
-# --- RUFF CONFIGURATION ---
 [tool.ruff]
 target-version = "py38"
 line-length = 80
 
 [tool.ruff.lint]
-select = ["E", "W", "F", "I", "UP"]
+select = ["E", "W", "F", "I", "UP", "B", "RUF"]
 ignore = [
     "E501",
-    "E402",
-    "F401"
+    "E402"
 ]
 
 [tool.ruff.lint.extend-per-file-ignores]
 "tests/**/*" = ["E731"]
+"**/__init__.py" = ["F401"]
 
 [tool.ruff.lint.isort]
 force-single-line = false
@@ -67,9 +66,15 @@ combine-as-imports = true
 quote-style = "double"
 indent-style = "space"
 
-# --- POE TASKS ---
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+check_untyped_defs = true
+ignore_missing_imports = true
+
 [tool.poe.tasks]
-# Quality Assurance
 test = "pytest tests/"
 compile = { cmd = "python -m compileall -q ." }
 pre-commit = { cmd = "pre-commit run --all-files", env = { SKIP = "no-commit-to-branch" } }
@@ -130,8 +135,6 @@ for p in pathlib.Path('.').rglob('*.py'):
 "''' }
 check = ["clean", "compile", "strip-comments", "pre-commit", "test", "clean"]
 
-# Build Pipeline
 build = { cmd = "python -m build" }
 
-# Setup Task
 hook = { cmd = "pre-commit install" }

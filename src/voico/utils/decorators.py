@@ -8,10 +8,6 @@ logger = logging.getLogger(__name__)
 
 @contextmanager
 def timer(name: str, timing_dict: Optional[Dict[str, float]] = None):
-    """
-    Context manager to measure execution time of a block.
-    Can optionally update a dictionary for performance profiling.
-    """
     start = time.perf_counter()
     try:
         yield

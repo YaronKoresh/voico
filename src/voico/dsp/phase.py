@@ -22,60 +22,54 @@ class PhaseReconstructor:
         self,
         magnitude: np.ndarray,
         n_iter: int = 32,
-        init_phase: Optional[np.ndarray] = None,
+        initial_phase: Optional[np.ndarray] = None,
     ) -> np.ndarray:
-        """
-        Reconstructs phase from magnitude spectrogram using Griffin-Lim algorithm.
-        """
         if LIBROSA_AVAILABLE:
             return librosa.griffinlim(
                 magnitude,
                 n_iter=n_iter,
                 hop_length=self.hop_length,
                 win_length=self.n_fft,
-                init=init_phase if init_phase is not None else "random",
+                init=(initial_phase if initial_phase is not None else "random"),
             )
-        else:
-            return self._griffin_lim_native(magnitude, n_iter, init_phase)
+        return self._griffin_lim_native(magnitude, n_iter, initial_phase)
 
     def _griffin_lim_native(
         self,
         magnitude: np.ndarray,
         n_iter: int,
-        init_phase: Optional[np.ndarray],
+        initial_phase: Optional[np.ndarray],
     ) -> np.ndarray:
-        """Native implementation of Griffin-Lim if Librosa is missing."""
-        if init_phase is not None:
-            stft_matrix = init_phase
+        if initial_phase is not None:
+            stft_matrix = initial_phase
         else:
             random_phase = 2 * np.pi * np.random.random(magnitude.shape)
             stft_matrix = magnitude * np.exp(1j * random_phase)
 
-        for i in range(n_iter):
-            y = self._istft(stft_matrix)
-
-            stft_matrix = self._stft(y)
-
+        for _ in range(n_iter):
+            audio = self._inverse_stft(stft_matrix)
+            stft_matrix = self._forward_stft(audio)
             phase = np.angle(stft_matrix)
             stft_matrix = magnitude * np.exp(1j * phase)
 
-        return self._istft(stft_matrix)
+        return self._inverse_stft(stft_matrix)
 
-    def _stft(self, y: np.ndarray) -> np.ndarray:
-
+    def _forward_stft(self, audio: np.ndarray) -> np.ndarray:
         import scipy.signal
 
-        f, t, Zxx = scipy.signal.stft(
-            y, nperseg=self.n_fft, noverlap=self.n_fft - self.hop_length
+        _, _, stft_result = scipy.signal.stft(
+            audio,
+            nperseg=self.n_fft,
+            noverlap=self.n_fft - self.hop_length,
         )
-        return Zxx
+        return stft_result
 
-    def _istft(self, stft_matrix: np.ndarray) -> np.ndarray:
+    def _inverse_stft(self, stft_matrix: np.ndarray) -> np.ndarray:
         import scipy.signal
 
-        t, y = scipy.signal.istft(
+        _, audio = scipy.signal.istft(
             stft_matrix,
             nperseg=self.n_fft,
             noverlap=self.n_fft - self.hop_length,
         )
-        return y
+        return audio
