@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Dict
 
 import numpy as np
 
@@ -10,7 +11,6 @@ class PitchContour:
     f0_mean: float
     f0_std: float
     harmonic_to_noise_ratio: float
-    jitter: float = 0.0
 
 
 @dataclass
@@ -35,3 +35,16 @@ class VoiceProfile:
     harmonic_ratios: np.ndarray
     harmonic_energy: np.ndarray
     sample_rate: int
+
+
+@dataclass
+class ConversionReport:
+    output_path: str
+    pitch_shift_applied: float
+    formant_shift_applied: float
+    sample_rate: int
+    input_duration_seconds: float
+    output_duration_seconds: float
+    snr_db: float
+    spectral_centroid_deviation: float
+    stages_timing: Dict[str, float]

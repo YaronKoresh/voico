@@ -3,20 +3,17 @@ from typing import Tuple
 
 import numpy as np
 
+from ..backends import LIBROSA_AVAILABLE
 from ..core.constants import AudioConstants
 from ..core.types import PitchContour
 
-try:
+if LIBROSA_AVAILABLE:
     import librosa
-
-    LIBROSA_AVAILABLE = True
-except ImportError:
-    LIBROSA_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
 
-class PitchDetector:
+class PitchAnalyzer:
     def __init__(self, sample_rate: int, hop_length: int, n_fft: int):
         self.sample_rate = sample_rate
         self.hop_length = hop_length
@@ -48,11 +45,41 @@ class PitchDetector:
             f0_mean = 150.0
             f0_std = 0.0
 
-        harmonic_to_noise_ratio = 20.0
+        hnr = self._compute_hnr(audio, f0_mean)
 
         return PitchContour(
-            f0_clean, voiced_flag, f0_mean, f0_std, harmonic_to_noise_ratio
+            f0_clean, voiced_flag, f0_mean, f0_std, hnr
         )
+
+    def _compute_hnr(
+        self, audio: np.ndarray, f0_mean: float
+    ) -> float:
+        if f0_mean <= 0 or np.isnan(f0_mean):
+            return 0.0
+
+        period = int(self.sample_rate / f0_mean)
+        if period < 2 or period >= len(audio) // 2:
+            return 0.0
+
+        n_samples = min(len(audio), self.sample_rate)
+        frame = audio[:n_samples].astype(np.float64)
+
+        autocorr = np.correlate(frame, frame, mode="full")
+        center = len(frame) - 1
+        r0 = autocorr[center]
+        if r0 < AudioConstants.EPSILON:
+            return 0.0
+
+        r_period = autocorr[center + period]
+        noise_power = r0 - r_period
+
+        if noise_power < AudioConstants.EPSILON:
+            return 40.0
+
+        hnr = 10.0 * np.log10(
+            max(r_period, AudioConstants.EPSILON) / noise_power
+        )
+        return float(np.clip(hnr, 0.0, 40.0))
 
     def _autocorrelation_detect(
         self, audio: np.ndarray
@@ -75,45 +102,67 @@ class PitchDetector:
             frame = audio[start:end].astype(np.float64)
             frame_max_lag = min(max_lag, len(frame) // 2)
 
-            difference = np.zeros(frame_max_lag + 1)
-            for tau in range(1, frame_max_lag + 1):
-                diff = frame[:frame_max_lag] - frame[tau : tau + frame_max_lag]
-                if len(diff) == 0:
-                    break
-                difference[tau] = np.sum(diff**2)
+            fft_size = 1
+            while fft_size < 2 * len(frame):
+                fft_size *= 2
+            frame_fft = np.fft.rfft(frame, n=fft_size)
+            acf = np.fft.irfft(frame_fft * np.conj(frame_fft))[
+                : frame_max_lag + 1
+            ]
 
+            frame_sq_cumsum = np.cumsum(frame**2)
+            n = len(frame)
+
+            difference = np.zeros(frame_max_lag + 1)
+            taus = np.arange(1, frame_max_lag + 1)
+            energy_left = frame_sq_cumsum[
+                np.clip(n - taus - 1, 0, n - 1)
+            ]
+            energy_right = (
+                frame_sq_cumsum[n - 1] - frame_sq_cumsum[taus - 1]
+            )
+            difference[1:] = np.maximum(
+                energy_left + energy_right - 2 * acf[1 : frame_max_lag + 1],
+                0.0,
+            )
+
+            cumsum_diff = np.cumsum(difference[1:])
             normalized_difference = np.ones(frame_max_lag + 1)
-            running_sum = 0.0
-            for tau in range(1, frame_max_lag + 1):
-                running_sum += difference[tau]
-                if running_sum > 0:
-                    normalized_difference[tau] = (
-                        difference[tau] * tau / running_sum
-                    )
+            tau_values = np.arange(
+                1, frame_max_lag + 1, dtype=np.float64
+            )
+            nonzero_mask = cumsum_diff > 0
+            normalized_difference[1:][nonzero_mask] = (
+                difference[1:][nonzero_mask]
+                * tau_values[nonzero_mask]
+                / cumsum_diff[nonzero_mask]
+            )
 
             threshold = 0.1
-            best_tau = -1
+            best_tau = -1.0
             search_max = min(max_lag, frame_max_lag)
-            for tau in range(min_lag, search_max + 1):
-                if normalized_difference[tau] < threshold:
-                    if tau > 0 and tau < search_max:
-                        alpha = normalized_difference[tau - 1]
-                        beta = normalized_difference[tau]
-                        gamma = normalized_difference[tau + 1]
-                        denom = 2.0 * (alpha - 2.0 * beta + gamma)
-                        if abs(denom) > 1e-12:
-                            delta = (alpha - gamma) / denom
-                        else:
-                            delta = 0.0
-                        best_tau = tau + delta
+
+            search_range = normalized_difference[min_lag : search_max + 1]
+            below_threshold = np.where(search_range < threshold)[0]
+
+            if len(below_threshold) > 0:
+                tau = below_threshold[0] + min_lag
+                if 0 < tau < search_max:
+                    alpha = normalized_difference[tau - 1]
+                    beta = normalized_difference[tau]
+                    gamma = normalized_difference[tau + 1]
+                    denom = 2.0 * (alpha - 2.0 * beta + gamma)
+                    if abs(denom) > 1e-12:
+                        delta = (alpha - gamma) / denom
                     else:
-                        best_tau = float(tau)
-                    break
+                        delta = 0.0
+                    best_tau = tau + delta
+                else:
+                    best_tau = float(tau)
 
             if best_tau < 0:
-                search = normalized_difference[min_lag : search_max + 1]
-                idx = np.argmin(search)
-                if search[idx] < 0.3:
+                idx = np.argmin(search_range)
+                if search_range[idx] < 0.3:
                     best_tau = float(idx + min_lag)
 
             if best_tau > 0:

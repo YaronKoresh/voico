@@ -5,7 +5,12 @@ import numpy as np
 import pytest
 
 from voico.core.errors import AudioLoadError, AudioSaveError
-from voico.utils.audio_io import load_audio, normalize_audio, save_audio
+from voico.utils.audio_io import (
+    get_audio_info,
+    load_audio,
+    normalize_audio,
+    save_audio,
+)
 from voico.utils.decorators import timer
 from voico.utils.math_utils import safe_divide
 
@@ -114,6 +119,74 @@ class TestAudioIO:
         finally:
             os.unlink(temp_path)
 
+    def test_save_float32_bit_depth(self) -> None:
+        audio = np.sin(
+            2 * np.pi * 440 * np.linspace(0, 0.1, 4410)
+        ).astype(np.float32)
+
+        with tempfile.NamedTemporaryFile(
+            suffix=".wav", delete=False
+        ) as f:
+            temp_path = f.name
+
+        try:
+            save_audio(temp_path, audio, 44100, bit_depth=32)
+            loaded, sr = load_audio(temp_path)
+            assert sr == 44100
+            assert len(loaded) > 0
+        finally:
+            os.unlink(temp_path)
+
+    def test_save_unsupported_bit_depth_raises(self) -> None:
+        audio = np.zeros(100, dtype=np.float32)
+        with tempfile.NamedTemporaryFile(
+            suffix=".wav", delete=False
+        ) as f:
+            temp_path = f.name
+        try:
+            with pytest.raises(AudioSaveError):
+                save_audio(temp_path, audio, 44100, bit_depth=24)
+        finally:
+            os.unlink(temp_path)
+
+    def test_save_unsupported_format_raises(self) -> None:
+        audio = np.zeros(100, dtype=np.float32)
+        with tempfile.NamedTemporaryFile(
+            suffix=".mp3", delete=False
+        ) as f:
+            temp_path = f.name
+        try:
+            with pytest.raises(AudioSaveError):
+                save_audio(temp_path, audio, 44100)
+        finally:
+            os.unlink(temp_path)
+
+
+class TestGetAudioInfo:
+    def test_get_info_wav(self) -> None:
+        audio = np.sin(
+            2 * np.pi * 440 * np.linspace(0, 0.5, 22050)
+        ).astype(np.float32)
+
+        with tempfile.NamedTemporaryFile(
+            suffix=".wav", delete=False
+        ) as f:
+            temp_path = f.name
+
+        try:
+            save_audio(temp_path, audio, 44100)
+            info = get_audio_info(temp_path)
+            assert info["path"] == temp_path
+            assert info["format"] == "wav"
+            assert info["sample_rate"] == 44100
+            assert int(str(info["file_size_bytes"])) > 0
+        finally:
+            os.unlink(temp_path)
+
+    def test_get_info_nonexistent_raises(self) -> None:
+        with pytest.raises(AudioLoadError):
+            get_audio_info("/nonexistent/file.wav")
+
 
 class TestAudioIOScipyFallback:
     def test_load_wav_scipy_fallback(
@@ -143,7 +216,7 @@ class TestAudioIOScipyFallback:
     def test_load_wav_int32_fallback(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        import scipy.io.wavfile as wav
+        import scipy.io.wavfile as wavmod
 
         import voico.utils.audio_io as aio
 
@@ -156,7 +229,7 @@ class TestAudioIOScipyFallback:
             suffix=".wav", delete=False
         ) as f:
             temp_path = f.name
-            wav.write(temp_path, 44100, audio_int32)
+            wavmod.write(temp_path, 44100, audio_int32)
 
         try:
             monkeypatch.setattr(aio, "LIBROSA_AVAILABLE", False)
@@ -170,7 +243,7 @@ class TestAudioIOScipyFallback:
     def test_load_stereo_to_mono_fallback(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        import scipy.io.wavfile as wav
+        import scipy.io.wavfile as wavmod
 
         import voico.utils.audio_io as aio
 
@@ -183,7 +256,7 @@ class TestAudioIOScipyFallback:
             suffix=".wav", delete=False
         ) as f:
             temp_path = f.name
-            wav.write(temp_path, 44100, stereo)
+            wavmod.write(temp_path, 44100, stereo)
 
         try:
             monkeypatch.setattr(aio, "LIBROSA_AVAILABLE", False)

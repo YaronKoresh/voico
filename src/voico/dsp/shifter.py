@@ -3,19 +3,16 @@ import logging
 import numpy as np
 from scipy.ndimage import map_coordinates
 
+from ..backends import LIBROSA_AVAILABLE
 from ..core.constants import AudioConstants
 
-try:
+if LIBROSA_AVAILABLE:
     import librosa
-
-    LIBROSA_AVAILABLE = True
-except ImportError:
-    LIBROSA_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
 
-class SpectralShifter:
+class SpectralProcessor:
     def __init__(self, sample_rate: int, n_fft: int):
         self.sample_rate = sample_rate
         self.n_fft = n_fft

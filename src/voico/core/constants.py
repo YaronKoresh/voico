@@ -1,4 +1,4 @@
-from typing import ClassVar, List
+from typing import ClassVar, Tuple
 
 
 class AudioConstants:
@@ -12,18 +12,18 @@ class AudioConstants:
 
     EPSILON = 1e-10
 
-    DEFAULT_FORMANT_FREQS: ClassVar[List[int]] = [
+    DEFAULT_FORMANT_FREQS: ClassVar[Tuple[int, ...]] = (
         500,
         1500,
         2500,
         3500,
         4500,
-    ]
-    DEFAULT_FORMANT_BANDWIDTHS: ClassVar[List[int]] = [
+    )
+    DEFAULT_FORMANT_BANDWIDTHS: ClassVar[Tuple[int, ...]] = (
         80,
         100,
         120,
         150,
         200,
-    ]
+    )
     MAX_FORMANT_BANDWIDTH = 400

@@ -79,7 +79,7 @@ class TestDataclasses:
             harmonic_to_noise_ratio=20.0,
         )
         assert contour.f0_mean == 105.0
-        assert contour.jitter == 0.0
+        assert contour.harmonic_to_noise_ratio == 20.0
 
     def test_formant_track_creation(self) -> None:
         track = FormantTrack(

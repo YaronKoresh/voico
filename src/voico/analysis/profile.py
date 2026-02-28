@@ -1,17 +1,18 @@
 import logging
 
 import numpy as np
+import scipy.signal
 
 from ..core.types import VoiceProfile
 from ..utils.decorators import timer
 from .formant import FormantAnalyzer
-from .pitch import PitchDetector
+from .pitch import PitchAnalyzer
 from .spectral import SpectralAnalyzer
 
 logger = logging.getLogger(__name__)
 
 
-class VoiceProfileBuilder:
+class VoiceAnalysisEngine:
     def __init__(
         self,
         sample_rate: int,
@@ -34,7 +35,7 @@ class VoiceProfileBuilder:
             self._build_analyzers()
 
     def _build_analyzers(self) -> None:
-        self.pitch_detector = PitchDetector(
+        self.pitch_analyzer = PitchAnalyzer(
             self._sample_rate, self.hop_length, self.n_fft
         )
         self.formant_analyzer = FormantAnalyzer(
@@ -47,8 +48,16 @@ class VoiceProfileBuilder:
     def build(self, audio: np.ndarray, name: str = "Unknown") -> VoiceProfile:
         logger.info(f"Building voice profile for: {name}")
 
+        _, _, stft_matrix = scipy.signal.stft(
+            audio,
+            fs=self._sample_rate,
+            nperseg=self.n_fft,
+            noverlap=self.n_fft - self.hop_length,
+        )
+        shared_magnitude = np.abs(stft_matrix)
+
         with timer("Pitch Detection"):
-            pitch_contour = self.pitch_detector.detect(audio)
+            pitch_contour = self.pitch_analyzer.detect(audio)
 
         with timer("Formant Analysis"):
             formant_track = self.formant_analyzer.analyze(
@@ -56,10 +65,10 @@ class VoiceProfileBuilder:
             )
 
         with timer("Spectral Analysis"):
-            spectral_features = self.spectral_analyzer.analyze(audio)
+            spectral_features = self.spectral_analyzer.analyze_with_magnitude(shared_magnitude)
             harmonic_energy, harmonic_ratios = (
-                self.spectral_analyzer.compute_harmonic_stats(
-                    audio, pitch_contour.f0
+                self.spectral_analyzer.compute_harmonic_stats_with_magnitude(
+                    shared_magnitude, pitch_contour.f0
                 )
             )
 

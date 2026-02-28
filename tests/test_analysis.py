@@ -3,8 +3,8 @@ import pytest
 
 from voico.analysis.formant import FormantAnalyzer
 from voico.analysis.matcher import VoiceMatcher
-from voico.analysis.pitch import PitchDetector
-from voico.analysis.profile import VoiceProfileBuilder
+from voico.analysis.pitch import PitchAnalyzer
+from voico.analysis.profile import VoiceAnalysisEngine
 from voico.analysis.spectral import SpectralAnalyzer
 from voico.core.types import (
     FormantTrack,
@@ -14,12 +14,12 @@ from voico.core.types import (
 )
 
 
-class TestPitchDetector:
+class TestPitchAnalyzer:
     def test_detect_sine_wave(
         self, sine_wave_440hz: np.ndarray, sample_rate: int
     ) -> None:
-        detector = PitchDetector(sample_rate, hop_length=512, n_fft=2048)
-        contour = detector.detect(sine_wave_440hz)
+        analyzer = PitchAnalyzer(sample_rate, hop_length=512, n_fft=2048)
+        contour = analyzer.detect(sine_wave_440hz)
 
         assert isinstance(contour, PitchContour)
         assert contour.f0_mean > 0
@@ -29,26 +29,33 @@ class TestPitchDetector:
     def test_detect_silence(
         self, silence: np.ndarray, sample_rate: int
     ) -> None:
-        detector = PitchDetector(sample_rate, hop_length=512, n_fft=2048)
-        contour = detector.detect(silence)
+        analyzer = PitchAnalyzer(sample_rate, hop_length=512, n_fft=2048)
+        contour = analyzer.detect(silence)
         assert isinstance(contour, PitchContour)
 
     def test_autocorrelation_fallback(
-        self, sine_wave_440hz: np.ndarray, sample_rate: int
+        self,
+        sine_wave_440hz: np.ndarray,
+        sample_rate: int,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        detector = PitchDetector(sample_rate, hop_length=512, n_fft=2048)
-        f0, confidence = detector._autocorrelation_detect(sine_wave_440hz)
-        assert len(f0) > 0
-        assert len(confidence) == len(f0)
+        import voico.analysis.pitch as pitch_mod
+
+        monkeypatch.setattr(pitch_mod, "LIBROSA_AVAILABLE", False)
+        analyzer = PitchAnalyzer(sample_rate, hop_length=512, n_fft=2048)
+        contour = analyzer.detect(sine_wave_440hz)
+        assert isinstance(contour, PitchContour)
+        assert len(contour.f0) > 0
+        assert len(contour.voiced_mask) == len(contour.f0)
 
     def test_detect_different_pitches(self, sample_rate: int) -> None:
         t = np.linspace(0, 1.0, sample_rate, endpoint=False)
         low = np.sin(2 * np.pi * 100 * t).astype(np.float32)
         high = np.sin(2 * np.pi * 400 * t).astype(np.float32)
 
-        detector = PitchDetector(sample_rate, hop_length=512, n_fft=2048)
-        low_contour = detector.detect(low)
-        high_contour = detector.detect(high)
+        analyzer = PitchAnalyzer(sample_rate, hop_length=512, n_fft=2048)
+        low_contour = analyzer.detect(low)
+        high_contour = analyzer.detect(high)
 
         assert low_contour.f0_mean < high_contour.f0_mean
 
@@ -66,29 +73,37 @@ class TestFormantAnalyzer:
         assert len(track.mean_frequencies) == 5
         assert len(track.mean_bandwidths) == 5
 
-    def test_levinson_durbin_with_signal(self, sample_rate: int) -> None:
-        t = np.linspace(0, 0.025, int(sample_rate * 0.025), endpoint=False)
-        frame = np.sin(2 * np.pi * 200 * t).astype(np.float64)
-
+    def test_analyze_with_silence(
+        self, silence: np.ndarray, sample_rate: int
+    ) -> None:
         analyzer = FormantAnalyzer(sample_rate, hop_length=512)
-        coeffs = analyzer._levinson_durbin(frame, order=14)
+        f0_contour = np.zeros(86)
+        track = analyzer.analyze(silence, f0_contour)
+        assert isinstance(track, FormantTrack)
+        assert all(f > 0 for f in track.mean_frequencies)
 
-        assert coeffs is not None
-        assert len(coeffs) == 15
-        assert coeffs[0] == 1.0
+    def test_analyze_with_low_pitch(self, sample_rate: int) -> None:
+        t = np.linspace(0, 1.0, sample_rate, endpoint=False)
+        low_pitch = np.sin(2 * np.pi * 80 * t).astype(np.float32)
+        f0_contour = np.full(86, 80.0)
+        analyzer = FormantAnalyzer(sample_rate, hop_length=512)
+        track = analyzer.analyze(low_pitch, f0_contour)
+        assert isinstance(track, FormantTrack)
 
-    def test_levinson_durbin_with_silence(self) -> None:
-        analyzer = FormantAnalyzer(44100, hop_length=512)
-        frame = np.zeros(256, dtype=np.float64)
-        result = analyzer._levinson_durbin(frame, order=14)
-        assert result is None
+    def test_analyze_scipy_fallback(
+        self,
+        sine_wave_440hz: np.ndarray,
+        sample_rate: int,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        import voico.analysis.formant as formant_mod
 
-    def test_lpc_to_formants(self) -> None:
-        analyzer = FormantAnalyzer(10000, hop_length=512)
-        coeffs = np.array([1.0, -1.5, 0.7, -0.2, 0.05])
-        freqs, bws = analyzer._lpc_to_formants(coeffs, 10000)
-        assert isinstance(freqs, np.ndarray)
-        assert isinstance(bws, np.ndarray)
+        monkeypatch.setattr(formant_mod, "LIBROSA_AVAILABLE", False)
+        analyzer = FormantAnalyzer(sample_rate, hop_length=512)
+        f0_contour = np.full(86, 440.0)
+        track = analyzer.analyze(sine_wave_440hz, f0_contour)
+        assert isinstance(track, FormantTrack)
+        assert track.frequencies.shape[0] == 5
 
 
 class TestSpectralAnalyzer:
@@ -123,43 +138,53 @@ class TestSpectralAnalyzer:
         features = analyzer.analyze(white_noise)
         assert isinstance(features, SpectralFeatures)
 
+    def test_stft_cache_reuse(
+        self, sine_wave_440hz: np.ndarray, sample_rate: int
+    ) -> None:
+        analyzer = SpectralAnalyzer(sample_rate, n_fft=2048, hop_length=512)
+        analyzer.analyze(sine_wave_440hz)
+        assert analyzer._cached_audio_id == id(sine_wave_440hz)
+        f0 = np.full(86, 440.0)
+        analyzer.compute_harmonic_stats(sine_wave_440hz, f0)
+        assert analyzer._cached_audio_id == id(sine_wave_440hz)
 
-class TestVoiceProfileBuilder:
+
+class TestVoiceAnalysisEngine:
     def test_build_profile(
         self, sine_wave_440hz: np.ndarray, sample_rate: int
     ) -> None:
-        builder = VoiceProfileBuilder(
+        engine = VoiceAnalysisEngine(
             sample_rate, n_fft=2048, hop_length=512
         )
-        profile = builder.build(sine_wave_440hz, "Test")
+        profile = engine.build(sine_wave_440hz, "Test")
 
         assert isinstance(profile, VoiceProfile)
         assert profile.sample_rate == sample_rate
         assert profile.pitch.f0_mean > 0
 
     def test_sample_rate_property_updates_analyzers(self) -> None:
-        builder = VoiceProfileBuilder(44100, n_fft=2048, hop_length=512)
-        assert builder.sample_rate == 44100
+        engine = VoiceAnalysisEngine(44100, n_fft=2048, hop_length=512)
+        assert engine.sample_rate == 44100
 
-        builder.sample_rate = 22050
-        assert builder.sample_rate == 22050
-        assert builder.pitch_detector.sample_rate == 22050
-        assert builder.formant_analyzer.sample_rate == 22050
-        assert builder.spectral_analyzer.sample_rate == 22050
+        engine.sample_rate = 22050
+        assert engine.sample_rate == 22050
+        assert engine.pitch_analyzer.sample_rate == 22050
+        assert engine.formant_analyzer.sample_rate == 22050
+        assert engine.spectral_analyzer.sample_rate == 22050
 
     def test_same_sample_rate_no_rebuild(self) -> None:
-        builder = VoiceProfileBuilder(44100, n_fft=2048, hop_length=512)
-        original_detector = builder.pitch_detector
-        builder.sample_rate = 44100
-        assert builder.pitch_detector is original_detector
+        engine = VoiceAnalysisEngine(44100, n_fft=2048, hop_length=512)
+        original_analyzer = engine.pitch_analyzer
+        engine.sample_rate = 44100
+        assert engine.pitch_analyzer is original_analyzer
 
     def test_aligned_output_lengths(
         self, sine_wave_440hz: np.ndarray, sample_rate: int
     ) -> None:
-        builder = VoiceProfileBuilder(
+        engine = VoiceAnalysisEngine(
             sample_rate, n_fft=2048, hop_length=512
         )
-        profile = builder.build(sine_wave_440hz)
+        profile = engine.build(sine_wave_440hz)
 
         pitch_len = len(profile.pitch.f0)
         formant_len = profile.formants.frequencies.shape[1]

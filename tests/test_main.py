@@ -35,6 +35,8 @@ class TestParseArgs:
         assert args.formant == 1.0
         assert args.quality == "balanced"
         assert args.verbose is False
+        assert args.info is False
+        assert args.bit_depth == 16
 
     def test_all_args(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(
@@ -46,6 +48,7 @@ class TestParseArgs:
                 "-p", "3.5",
                 "-f", "1.2",
                 "-q", "master",
+                "-b", "32",
                 "-v",
             ],
         )
@@ -56,7 +59,15 @@ class TestParseArgs:
         assert args.pitch == 3.5
         assert args.formant == 1.2
         assert args.quality == "master"
+        assert args.bit_depth == 32
         assert args.verbose is True
+
+    def test_info_flag(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(
+            "sys.argv", ["voico", "input.wav", "--info"]
+        )
+        args = parse_args()
+        assert args.info is True
 
 
 class TestMain:
@@ -136,3 +147,18 @@ class TestMain:
             main()
             expected = os.path.join(tmpdir, "source_to_target.wav")
             assert os.path.exists(expected)
+
+    def test_info_flag(
+        self, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+    ) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            input_path = os.path.join(tmpdir, "input.wav")
+            _create_wav(input_path)
+            monkeypatch.setattr(
+                "sys.argv",
+                ["voico", input_path, "--info"],
+            )
+            main()
+            captured = capsys.readouterr()
+            assert "Sample Rate" in captured.out
+            assert "44100" in captured.out

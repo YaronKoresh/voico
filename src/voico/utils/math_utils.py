@@ -1,8 +1,3 @@
-import numpy as np
+from voico.utils._internals import safe_divide
 
-
-def safe_divide(a: np.ndarray, b: np.ndarray, fill: float = 0.0) -> np.ndarray:
-    with np.errstate(divide="ignore", invalid="ignore"):
-        result = np.true_divide(a, b)
-        result[~np.isfinite(result)] = fill
-    return result
+__all__ = ["safe_divide"]

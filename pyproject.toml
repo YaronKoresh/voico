@@ -11,26 +11,37 @@ license = {text = "UCSL-1.0"}
 license-files = ["LICENSE"]
 requires-python = ">=3.8"
 dependencies = [
-    "numpy",
-    "scipy",
-    "librosa"
+    "numpy>=1.21.0",
+    "scipy>=1.7.0"
 ]
 
 [project.optional-dependencies]
+full = ["librosa>=0.9.0"]
+server = [
+    "fastapi>=0.100.0",
+    "uvicorn>=0.23.0",
+    "python-multipart>=0.0.6",
+]
 dev = [
+    "librosa>=0.9.0",
     "pytest>=7.4.0",
-    "pytest-asyncio",
     "pytest-cov>=4.1.0",
     "pytest-mock>=3.12.0",
-    "hypothesis>=6.90.0",
     "ruff",
     "poethepoet",
     "pre-commit",
-    "build"
+    "build",
+    "pydantic>=2.0.0",
+    "mypy>=1.0",
+    "vulture>=2.10",
+    "websockets>=12.0",
+    "pyinstaller>=6.0",
+    "briefcase>=0.3.0"
 ]
 
 [project.scripts]
 voico = "voico.main:main"
+voico-server = "voico.api._server:main"
 
 [project.urls]
 Homepage = "https://github.com/YaronKoresh/voico"
@@ -39,6 +50,9 @@ Issues = "https://github.com/YaronKoresh/voico/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/voico"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -66,14 +80,6 @@ combine-as-imports = true
 quote-style = "double"
 indent-style = "space"
 
-[tool.mypy]
-python_version = "3.8"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
-check_untyped_defs = true
-ignore_missing_imports = true
-
 [tool.poe.tasks]
 test = "pytest tests/"
 compile = { cmd = "python -m compileall -q ." }
@@ -97,44 +103,116 @@ for p in pathlib.Path('.').rglob('*'):
         elif p.name in targets['files'] or any(p.match(pat) for pat in targets['files']):
             if p.is_file(): p.unlink(missing_ok=True)
 "''' }
+dead-code = { cmd = "vulture src/voico --min-confidence 80 --sort-by-size" }
 strip-comments = { cmd = '''python -c "
+import ast
 import tokenize
 import io
 import pathlib
+import re
+
+def remove_docstrings(source):
+    try:
+        tree = ast.parse(source)
+        docstring_positions = set()
+
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.FunctionDef, ast.ClassDef, ast.Module)):
+                if (node.body and isinstance(node.body[0], ast.Expr) and
+                    isinstance(node.body[0].value, (ast.Str, ast.Constant))):
+                    stmt = node.body[0]
+                    docstring_positions.add((stmt.lineno, stmt.end_lineno))
+
+        lines = source.split('\n')
+        result_lines = []
+        for i, line in enumerate(lines, 1):
+            skip = False
+            for start, end in docstring_positions:
+                if start <= i <= end:
+                    skip = True
+                    break
+            if not skip:
+                result_lines.append(line)
+
+        return '\n'.join(result_lines)
+    except:
+        return source
 
 def strip_comments_and_format(file_path):
     try:
         with open(file_path, 'r', encoding='utf-8', newline='') as f:
             source = f.read()
 
+        source = remove_docstrings(source)
+
         tokens = tokenize.generate_tokens(io.StringIO(source).readline)
         result = []
-        last_lineno = -1
-        last_col = 0
 
         for toktype, tokval, start, end, line in tokens:
             if toktype == tokenize.COMMENT:
                 continue
-
-            if toktype == tokenize.NL or toktype == tokenize.NEWLINE:
-                pass
-
             result.append((toktype, tokval, start, end, line))
+
         cleaned = tokenize.untokenize(result)
+        lines = cleaned.split('\n')
+
+        blank_count = 0
+        final_lines = []
+        for line in lines:
+            if not line.strip():
+                blank_count += 1
+                if blank_count <= 2:
+                    final_lines.append(line)
+            else:
+                blank_count = 0
+                final_lines.append(line)
+
+        cleaned = '\n'.join(final_lines)
 
         with open(file_path, 'w', encoding='utf-8', newline='') as f:
             f.write(cleaned)
 
-        print(f'Stripped and cleaned: {file_path}')
+        print(f'Stripped: {file_path}')
 
     except Exception as e:
-        print(f'Failed to process {file_path}: {e}')
+        print(f'Failed {file_path}: {e}')
 
 for p in pathlib.Path('.').rglob('*.py'):
     strip_comments_and_format(p)
 "''' }
-check = ["clean", "compile", "strip-comments", "pre-commit", "test", "clean"]
-
+check = ["clean", "compile", "dead-code", "strip-comments", "pre-commit", "test", "clean"]
 build = { cmd = "python -m build" }
-
+build-wheel = { cmd = "python -m build --wheel" }
+build-exe = { cmd = "python scripts/build_all.py --pyinstaller" }
 hook = { cmd = "pre-commit install" }
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+no_implicit_optional = true
+strict_optional = true
+
+[tool.briefcase]
+project_name = "voico"
+bundle = "io.github.yaronkoresh.voico"
+version = "0.1.0"
+url = "https://github.com/YaronKoresh/voico"
+license = "MIT"
+
+[tool.briefcase.app.voico]
+formal_name = "Voico"
+description = "Modular Voice Converter"
+long_description = "Modular Voice Converter"
+sources = ["src/voico"]
+requires = []
+
+[tool.briefcase.app.voico.macOS]
+requires = []
+
+[tool.briefcase.app.voico.linux]
+requires = []
+
+[tool.briefcase.app.voico.windows]
+requires = []
