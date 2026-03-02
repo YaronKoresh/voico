@@ -2,21 +2,19 @@ import logging
 
 _logger = logging.getLogger(__name__)
 try:
-    import librosa as _librosa
+    import librosa
 
     LIBROSA_AVAILABLE = True
 except ImportError:
-    _librosa = None
     LIBROSA_AVAILABLE = False
     _logger.warning(
         "librosa is not installed; scipy/numpy fallbacks will be used"
     )
 try:
-    import soundfile as _soundfile
+    import soundfile
 
     SOUNDFILE_AVAILABLE = True
 except ImportError:
-    _soundfile = None
     SOUNDFILE_AVAILABLE = False
 
 

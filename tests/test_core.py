@@ -50,6 +50,48 @@ class TestQualitySettings:
         settings = QualitySettings.from_preset(ConversionQuality.TURBO)
         assert settings.use_advanced_phase is False
 
+    def test_validators_raise_on_bad_values(self) -> None:
+        with pytest.raises(ValueError):
+            QualitySettings(
+                hop_divisor=0,
+                griffin_lim_iters=1,
+                envelope_smoothing=1,
+                formant_tracking_order=1,
+                spectral_detail_preservation=0.5,
+                use_advanced_phase=True,
+                use_formant_correction=True,
+            )
+        with pytest.raises(ValueError):
+            QualitySettings(
+                hop_divisor=1,
+                griffin_lim_iters=0,
+                envelope_smoothing=1,
+                formant_tracking_order=1,
+                spectral_detail_preservation=0.5,
+                use_advanced_phase=True,
+                use_formant_correction=True,
+            )
+        with pytest.raises(ValueError):
+            QualitySettings(
+                hop_divisor=1,
+                griffin_lim_iters=1,
+                envelope_smoothing=1,
+                formant_tracking_order=0,
+                spectral_detail_preservation=0.5,
+                use_advanced_phase=True,
+                use_formant_correction=True,
+            )
+        with pytest.raises(ValueError):
+            QualitySettings(
+                hop_divisor=1,
+                griffin_lim_iters=1,
+                envelope_smoothing=1,
+                formant_tracking_order=1,
+                spectral_detail_preservation=1.5,
+                use_advanced_phase=True,
+                use_formant_correction=True,
+            )
+
 
 class TestAudioConstants:
     def test_frequency_range(self) -> None:
