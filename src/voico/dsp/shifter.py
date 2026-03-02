@@ -8,7 +8,6 @@ from ..core.constants import AudioConstants
 
 if LIBROSA_AVAILABLE:
     import librosa
-
 logger = logging.getLogger(__name__)
 
 
@@ -21,17 +20,13 @@ class SpectralProcessor:
     def shift_pitch(self, audio: np.ndarray, semitones: float) -> np.ndarray:
         if abs(semitones) < 0.01:
             return audio
-
         if LIBROSA_AVAILABLE:
             return librosa.effects.pitch_shift(
                 audio, sr=self.sample_rate, n_steps=semitones
             )
-
         factor = 2 ** (semitones / 12.0)
         return np.interp(
-            np.arange(0, len(audio), factor),
-            np.arange(len(audio)),
-            audio,
+            np.arange(0, len(audio), factor), np.arange(len(audio)), audio
         ).astype(audio.dtype)
 
     def shift_formants(
@@ -39,18 +34,14 @@ class SpectralProcessor:
     ) -> np.ndarray:
         if abs(shift_factor - 1.0) < 0.01:
             return magnitude
-
-        n_bins, n_frames = magnitude.shape
-
+        (n_bins, n_frames) = magnitude.shape
         target_bins = np.clip(np.arange(n_bins) * shift_factor, 0, n_bins - 1)
-
         row_coords = np.broadcast_to(
             target_bins[:, np.newaxis], (n_bins, n_frames)
         )
         col_coords = np.broadcast_to(
             np.arange(n_frames)[np.newaxis, :], (n_bins, n_frames)
         )
-
         return map_coordinates(
             magnitude,
             [row_coords, col_coords],
@@ -66,21 +57,16 @@ class SpectralProcessor:
         valid = (self.frequency_bins > 100) & (self.frequency_bins < 8000)
         if np.sum(valid) < 10:
             return source_magnitude
-
         log_frequencies = np.log(self.frequency_bins[valid])
         log_magnitudes = np.log(
             average_spectrum[valid] + AudioConstants.EPSILON
         )
-        current_slope, _ = np.polyfit(log_frequencies, log_magnitudes, 1)
-
+        (current_slope, _) = np.polyfit(log_frequencies, log_magnitudes, 1)
         slope_difference = target_tilt - current_slope
-
         correction = np.exp(
             slope_difference
             * np.log(self.frequency_bins + AudioConstants.EPSILON)
         )
-
         idx_1khz = np.argmin(np.abs(self.frequency_bins - 1000))
         correction /= correction[idx_1khz] + AudioConstants.EPSILON
-
         return source_magnitude * correction[:, np.newaxis]

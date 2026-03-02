@@ -6,7 +6,12 @@ from typing import Dict, List, Optional
 
 import numpy as np
 
-from ..core.types import FormantTrack, PitchContour, SpectralFeatures, VoiceProfile
+from ..core.types import (
+    FormantTrack,
+    PitchContour,
+    SpectralFeatures,
+    VoiceProfile,
+)
 
 DEFAULT_DB_PATH = str(Path.home() / ".voico" / "profiles.db")
 
@@ -49,8 +54,12 @@ def _deserialize_profile(data: str) -> VoiceProfile:
     formants = FormantTrack(
         frequencies=np.array(d["formants"]["frequencies"], dtype=np.float32),
         bandwidths=np.array(d["formants"]["bandwidths"], dtype=np.float32),
-        mean_frequencies=np.array(d["formants"]["mean_frequencies"], dtype=np.float32),
-        mean_bandwidths=np.array(d["formants"]["mean_bandwidths"], dtype=np.float32),
+        mean_frequencies=np.array(
+            d["formants"]["mean_frequencies"], dtype=np.float32
+        ),
+        mean_bandwidths=np.array(
+            d["formants"]["mean_bandwidths"], dtype=np.float32
+        ),
     )
     spectral = SpectralFeatures(
         envelope=np.array(d["spectral"]["envelope"], dtype=np.float32),
@@ -78,15 +87,7 @@ class ProfileStore:
     def _init_db(self) -> None:
         with self._connect() as conn:
             conn.execute(
-                """
-                CREATE TABLE IF NOT EXISTS profiles (
-                    name TEXT PRIMARY KEY,
-                    data TEXT NOT NULL,
-                    sample_rate INTEGER NOT NULL,
-                    f0_mean REAL NOT NULL,
-                    created_at TEXT NOT NULL DEFAULT (datetime('now'))
-                )
-                """
+                "\n                CREATE TABLE IF NOT EXISTS profiles (\n                    name TEXT PRIMARY KEY,\n                    data TEXT NOT NULL,\n                    sample_rate INTEGER NOT NULL,\n                    f0_mean REAL NOT NULL,\n                    created_at TEXT NOT NULL DEFAULT (datetime('now'))\n                )\n                "
             )
             conn.commit()
 
@@ -94,10 +95,7 @@ class ProfileStore:
         serialized = _serialize_profile(profile)
         with self._connect() as conn:
             conn.execute(
-                """
-                INSERT OR REPLACE INTO profiles (name, data, sample_rate, f0_mean)
-                VALUES (?, ?, ?, ?)
-                """,
+                "\n                INSERT OR REPLACE INTO profiles (name, data, sample_rate, f0_mean)\n                VALUES (?, ?, ?, ?)\n                ",
                 (name, serialized, profile.sample_rate, profile.pitch.f0_mean),
             )
             conn.commit()

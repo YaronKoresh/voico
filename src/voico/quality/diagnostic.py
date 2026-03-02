@@ -4,8 +4,6 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from typing import Any, Dict, List
 
-import numpy as np
-
 
 @dataclass
 class DiagnosticEvent:
@@ -61,9 +59,13 @@ class DiagnosticLogger:
         self.diagnostics.output_file = output_file
         self.diagnostics.quality_preset = quality_preset
 
-    def log_stage_timing(self, stage_name: str, duration_seconds: float) -> None:
+    def log_stage_timing(
+        self, stage_name: str, duration_seconds: float
+    ) -> None:
         self.diagnostics.stage_timings[stage_name] = duration_seconds
-        self.log_event(stage_name, "stage_completed", {"duration_s": duration_seconds})
+        self.log_event(
+            stage_name, "stage_completed", {"duration_s": duration_seconds}
+        )
 
     def log_quality_score(self, metric_name: str, score: float) -> None:
         self.diagnostics.quality_scores[metric_name] = score
@@ -113,16 +115,7 @@ class DiagnosticLogger:
         return self.diagnostics
 
     def get_summary(self) -> str:
-        return (
-            f"Pipeline: {self.pipeline_id}\n"
-            f"Input: {self.diagnostics.input_file}\n"
-            f"Output: {self.diagnostics.output_file}\n"
-            f"Quality Preset: {self.diagnostics.quality_preset}\n"
-            f"Duration: {self.diagnostics.total_duration_seconds:.2f}s\n"
-            f"Stages: {len(self.diagnostics.stage_timings)}\n"
-            f"Errors: {len(self.diagnostics.errors)}\n"
-            f"Warnings: {len(self.diagnostics.warnings)}\n"
-        )
+        return f"Pipeline: {self.pipeline_id}\nInput: {self.diagnostics.input_file}\nOutput: {self.diagnostics.output_file}\nQuality Preset: {self.diagnostics.quality_preset}\nDuration: {self.diagnostics.total_duration_seconds:.2f}s\nStages: {len(self.diagnostics.stage_timings)}\nErrors: {len(self.diagnostics.errors)}\nWarnings: {len(self.diagnostics.warnings)}\n"
 
     def log_to_file(self, filepath: str) -> None:
         with open(filepath, "w", encoding="utf-8") as f:

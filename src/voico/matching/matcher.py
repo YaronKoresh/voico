@@ -22,19 +22,17 @@ class VoiceMatcher:
                 "Invalid pitch means detected, defaulting to 0 semitones."
             )
             semitones = 0.0
-
         source_formants = source.formants.mean_frequencies[:3]
         target_formants = target.formants.mean_frequencies[:3]
-
         if len(source_formants) > 0 and len(target_formants) > 0:
-            ratios = target_formants / (source_formants + AudioConstants.EPSILON)
+            ratios = target_formants / (
+                source_formants + AudioConstants.EPSILON
+            )
             formant_factor = float(np.median(ratios))
             formant_factor = np.clip(formant_factor, 0.5, 2.0)
         else:
             formant_factor = 1.0
-
         logger.info(
-            f"Auto-Match Result: Shift {semitones:.2f} st, "
-            f"Formant Factor {formant_factor:.2f}x"
+            f"Auto-Match Result: Shift {semitones:.2f} st, Formant Factor {formant_factor:.2f}x"
         )
-        return semitones, formant_factor
+        return (semitones, formant_factor)

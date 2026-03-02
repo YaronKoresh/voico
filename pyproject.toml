@@ -56,6 +56,7 @@ allow-direct-references = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "-q --cov=src/voico --cov-report=term-missing"
 
 [tool.ruff]
 target-version = "py38"
@@ -65,7 +66,9 @@ line-length = 80
 select = ["E", "W", "F", "I", "UP", "B", "RUF"]
 ignore = [
     "E501",
-    "E402"
+    "E402",
+    "B008",
+    "B904"
 ]
 
 [tool.ruff.lint.extend-per-file-ignores]
@@ -82,6 +85,11 @@ indent-style = "space"
 
 [tool.poe.tasks]
 test = "pytest tests/"
+format = "ruff format --check ."
+format-fix = "ruff format ."
+lint = "ruff check ."
+lint-fix = "ruff check --fix ."
+typecheck = "mypy src"
 compile = { cmd = "python -m compileall -q ." }
 pre-commit = { cmd = "pre-commit run --all-files", env = { SKIP = "no-commit-to-branch" } }
 clean = { cmd = '''python -Bc "
@@ -178,28 +186,34 @@ def strip_comments_and_format(file_path):
         print(f'Failed {file_path}: {e}')
 
 for p in pathlib.Path('.').rglob('*.py'):
+    if '.venv' in p.parts or 'venv' in p.parts or any(part.startswith('.') for part in p.parts):
+        continue
     strip_comments_and_format(p)
 "''' }
-check = ["clean", "compile", "dead-code", "strip-comments", "pre-commit", "test", "clean"]
+check = ["clean", "compile", "format", "lint", "typecheck", "dead-code", "test", "clean"]
+fix = ["clean", "strip-comments", "format-fix", "lint-fix", "pre-commit", "test", "clean"]
 build = { cmd = "python -m build" }
 build-wheel = { cmd = "python -m build --wheel" }
 build-exe = { cmd = "python scripts/build_all.py --pyinstaller" }
 hook = { cmd = "pre-commit install" }
 
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
 ignore_missing_imports = true
 no_implicit_optional = true
 strict_optional = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
 
 [tool.briefcase]
 project_name = "voico"
 bundle = "io.github.yaronkoresh.voico"
 version = "0.1.0"
 url = "https://github.com/YaronKoresh/voico"
-license = "MIT"
+license = "UCSL-1.0"
 
 [tool.briefcase.app.voico]
 formal_name = "Voico"

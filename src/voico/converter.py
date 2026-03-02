@@ -12,23 +12,17 @@ import scipy.signal
 from .analysis.profile import VoiceAnalysisEngine
 from .core.config import ConversionQuality, QualitySettings
 from .core.constants import AudioConstants
-from .core.errors import (
-    AnalysisError,
-    ConversionError,
-    ProfileQualityError,
-    ValidationError,
-)
-from .core.types import ConversionReport
+from .core.errors import AnalysisError, ConversionError, ProfileQualityError
+from .core.types import ConversionReport, VoiceProfile
 from .dsp.phase import PhaseProcessor
 from .dsp.shifter import SpectralProcessor
 from .matching.matcher import VoiceMatcher
 from .quality.diagnostic import DiagnosticLogger
-from .quality.quality_score import QualityScorer
+from .quality.quality_score import ConversionQualityScore, QualityScorer
 from .stream.streamer import VoiceStreamProcessor
 from .utils.audio_io import load_audio, normalize_audio, save_audio
 
 logger = logging.getLogger(__name__)
-
 ProgressCallback = Callable[[str, float], None]
 
 
@@ -52,9 +46,9 @@ class PipelineContext:
     snr_db: float = 0.0
     spectral_centroid_deviation: float = 0.0
     stages_timing: Dict[str, float] = field(default_factory=dict)
-    source_profile: Optional[object] = None
-    target_profile: Optional[object] = None
-    quality_score: Optional[object] = None
+    source_profile: Optional[VoiceProfile] = None
+    target_profile: Optional[VoiceProfile] = None
+    quality_score: Optional[ConversionQualityScore] = None
     diagnostic_logger: Optional[DiagnosticLogger] = None
 
 
@@ -69,7 +63,7 @@ def _compute_snr(original: np.ndarray, processed: np.ndarray) -> float:
         return 0.0
     orig = original[:n].astype(np.float64)
     proc = processed[:n].astype(np.float64)
-    signal_power = np.mean(orig ** 2)
+    signal_power = np.mean(orig**2)
     noise_power = np.mean((orig - proc) ** 2)
     if noise_power < 1e-10:
         return 60.0
@@ -93,11 +87,10 @@ class LoadStage:
         _emit(ctx, "Loading", 0.0)
         logger.info(f"Loading source: {ctx.input_path}")
         try:
-            audio, sample_rate = load_audio(ctx.input_path)
+            (audio, sample_rate) = load_audio(ctx.input_path)
             ctx.audio = normalize_audio(audio)
             ctx.sample_rate = sample_rate
             ctx.input_duration = len(ctx.audio) / sample_rate
-
             if ctx.diagnostic_logger:
                 ctx.diagnostic_logger.log_event(
                     "load",
@@ -106,19 +99,22 @@ class LoadStage:
                         "sample_rate": sample_rate,
                         "duration_seconds": ctx.input_duration,
                         "samples": len(ctx.audio),
-                    }
+                    },
                 )
         except Exception as e:
             if ctx.diagnostic_logger:
-                ctx.diagnostic_logger.log_error(f"Failed to load audio: {e}", "load")
+                ctx.diagnostic_logger.log_error(
+                    f"Failed to load audio: {e}", "load"
+                )
             raise
-
         ctx.stages_timing["load"] = time.perf_counter() - t0
         return ctx
 
 
 class AnalysisStage:
-    def __init__(self, profile_engine: VoiceAnalysisEngine, n_fft: int, hop_length: int):
+    def __init__(
+        self, profile_engine: VoiceAnalysisEngine, n_fft: int, hop_length: int
+    ):
         self._engine = profile_engine
         self._n_fft = n_fft
         self._hop_length = hop_length
@@ -130,30 +126,26 @@ class AnalysisStage:
         try:
             self._engine.sample_rate = ctx.sample_rate
             ctx.source_profile = self._engine.build(ctx.audio, "Source")
-
             quality = self._quality_scorer.score_profile(ctx.source_profile)
             ctx.quality_score = quality
-
             if ctx.diagnostic_logger:
-                ctx.diagnostic_logger.log_quality_score("source_voice", quality.overall_score)
-                ctx.diagnostic_logger.log_validation(
-                    "source_profile",
-                    quality.is_viable,
-                    quality.critical_issues
+                ctx.diagnostic_logger.log_quality_score(
+                    "source_voice", quality.overall_score
                 )
-
+                ctx.diagnostic_logger.log_validation(
+                    "source_profile", quality.is_viable, quality.critical_issues
+                )
             if not quality.is_viable:
                 error_msg = f"Source profile quality insufficient: {quality.overall_score:.1f}/100"
                 if ctx.diagnostic_logger:
                     ctx.diagnostic_logger.log_error(error_msg, "analysis")
                 raise ProfileQualityError(error_msg, quality.recommendations)
-
-            logger.info(f"Source profile quality: {quality.overall_score:.1f}/100")
-
+            logger.info(
+                f"Source profile quality: {quality.overall_score:.1f}/100"
+            )
             if quality.warnings and ctx.diagnostic_logger:
                 for warning in quality.warnings:
                     ctx.diagnostic_logger.log_warning(warning, "analysis")
-
         except (AnalysisError, ProfileQualityError):
             raise
         except Exception as e:
@@ -163,7 +155,9 @@ class AnalysisStage:
 
 
 class MatchingStage:
-    def __init__(self, profile_engine: VoiceAnalysisEngine, n_fft: int, hop_length: int):
+    def __init__(
+        self, profile_engine: VoiceAnalysisEngine, n_fft: int, hop_length: int
+    ):
         self._engine = profile_engine
         self._n_fft = n_fft
         self._hop_length = hop_length
@@ -178,26 +172,31 @@ class MatchingStage:
         _emit(ctx, "Matching voices", 0.1)
         try:
             logger.info(f"Loading target for matching: {ctx.target_path}")
-            target_audio, target_sr = load_audio(ctx.target_path)
-            target_engine = VoiceAnalysisEngine(target_sr, self._n_fft, self._hop_length)
+            (target_audio, target_sr) = load_audio(ctx.target_path)
+            target_engine = VoiceAnalysisEngine(
+                target_sr, self._n_fft, self._hop_length
+            )
             ctx.target_profile = target_engine.build(target_audio, "Target")
-
-            target_quality = self._quality_scorer.score_profile(ctx.target_profile)
+            target_quality = self._quality_scorer.score_profile(
+                ctx.target_profile
+            )
             if ctx.diagnostic_logger:
-                ctx.diagnostic_logger.log_quality_score("target_voice", target_quality.overall_score)
+                ctx.diagnostic_logger.log_quality_score(
+                    "target_voice", target_quality.overall_score
+                )
                 ctx.diagnostic_logger.log_validation(
                     "target_profile",
                     target_quality.is_viable,
-                    target_quality.critical_issues
+                    target_quality.critical_issues,
                 )
-
             if not target_quality.is_viable:
                 error_msg = f"Target profile quality insufficient: {target_quality.overall_score:.1f}/100"
                 if ctx.diagnostic_logger:
                     ctx.diagnostic_logger.log_error(error_msg, "matching")
-                raise ProfileQualityError(error_msg, target_quality.recommendations)
-
-            ctx.pitch_shift, ctx.formant_shift = VoiceMatcher.match(
+                raise ProfileQualityError(
+                    error_msg, target_quality.recommendations
+                )
+            (ctx.pitch_shift, ctx.formant_shift) = VoiceMatcher.match(
                 ctx.source_profile, ctx.target_profile
             )
             logger.info(
@@ -218,14 +217,15 @@ class ShiftingStage:
     def execute(self, ctx: PipelineContext) -> PipelineContext:
         t0 = time.perf_counter()
         _emit(ctx, "Shifting pitch", 0.4)
-        logger.info(f"Applying: Pitch={ctx.pitch_shift:.2f}st, Formant={ctx.formant_shift:.2f}x")
+        logger.info(
+            f"Applying: Pitch={ctx.pitch_shift:.2f}st, Formant={ctx.formant_shift:.2f}x"
+        )
         processor = SpectralProcessor(ctx.sample_rate, ctx.n_fft)
         pitch_shifted = processor.shift_pitch(ctx.audio, ctx.pitch_shift)
-
         if abs(ctx.formant_shift - 1.0) > 0.01:
             _emit(ctx, "Shifting formants", 0.6)
             logger.info(f"Shifting formants by factor {ctx.formant_shift}...")
-            _, _, stft_matrix = scipy.signal.stft(
+            (_, _, stft_matrix) = scipy.signal.stft(
                 pitch_shifted,
                 fs=ctx.sample_rate,
                 nperseg=ctx.n_fft,
@@ -233,8 +233,9 @@ class ShiftingStage:
             )
             magnitude = np.abs(stft_matrix)
             phase_angles = np.angle(stft_matrix)
-            shifted_magnitude = processor.shift_formants(magnitude, ctx.formant_shift)
-
+            shifted_magnitude = processor.shift_formants(
+                magnitude, ctx.formant_shift
+            )
             if ctx.settings.use_advanced_phase:
                 logger.info("Reconstructing phase...")
                 if ctx.settings.griffin_lim_iters <= 32:
@@ -243,12 +244,13 @@ class ShiftingStage:
                     )
                 else:
                     ctx.output_audio = self._phase_processor.reconstruct(
-                        shifted_magnitude,
-                        n_iter=ctx.settings.griffin_lim_iters,
+                        shifted_magnitude, n_iter=ctx.settings.griffin_lim_iters
                     )
             else:
-                reconstructed_stft = shifted_magnitude * np.exp(1j * phase_angles)
-                _, ctx.output_audio = scipy.signal.istft(
+                reconstructed_stft = shifted_magnitude * np.exp(
+                    1j * phase_angles
+                )
+                (_, ctx.output_audio) = scipy.signal.istft(
                     reconstructed_stft,
                     fs=ctx.sample_rate,
                     nperseg=ctx.n_fft,
@@ -256,7 +258,6 @@ class ShiftingStage:
                 )
         else:
             ctx.output_audio = pitch_shifted
-
         ctx.stages_timing["shifting"] = time.perf_counter() - t0
         return ctx
 
@@ -265,15 +266,21 @@ class MetricsStage:
     def execute(self, ctx: PipelineContext) -> PipelineContext:
         t0 = time.perf_counter()
         ctx.snr_db = _compute_snr(ctx.audio, ctx.output_audio)
-        in_centroid = _compute_spectral_centroid(ctx.audio, ctx.sample_rate, ctx.n_fft)
-        out_centroid = _compute_spectral_centroid(ctx.output_audio, ctx.sample_rate, ctx.n_fft)
+        in_centroid = _compute_spectral_centroid(
+            ctx.audio, ctx.sample_rate, ctx.n_fft
+        )
+        out_centroid = _compute_spectral_centroid(
+            ctx.output_audio, ctx.sample_rate, ctx.n_fft
+        )
         if in_centroid > 1e-10:
-            ctx.spectral_centroid_deviation = abs(out_centroid - in_centroid) / in_centroid
-
+            ctx.spectral_centroid_deviation = (
+                abs(out_centroid - in_centroid) / in_centroid
+            )
         if ctx.diagnostic_logger:
             ctx.diagnostic_logger.log_quality_score("snr_db", ctx.snr_db)
-            ctx.diagnostic_logger.log_quality_score("spectral_centroid_deviation", ctx.spectral_centroid_deviation)
-
+            ctx.diagnostic_logger.log_quality_score(
+                "spectral_centroid_deviation", ctx.spectral_centroid_deviation
+            )
         ctx.stages_timing["metrics"] = time.perf_counter() - t0
         return ctx
 
@@ -285,9 +292,13 @@ class OutputStage:
         logger.info(f"Saving to {ctx.output_path}...")
         try:
             ctx.output_audio = normalize_audio(ctx.output_audio)
-            save_audio(ctx.output_path, ctx.output_audio, ctx.sample_rate, ctx.bit_depth)
+            save_audio(
+                ctx.output_path,
+                ctx.output_audio,
+                ctx.sample_rate,
+                ctx.bit_depth,
+            )
             ctx.output_duration = len(ctx.output_audio) / ctx.sample_rate
-
             if ctx.diagnostic_logger:
                 ctx.diagnostic_logger.log_event(
                     "output",
@@ -296,13 +307,14 @@ class OutputStage:
                         "output_path": ctx.output_path,
                         "bit_depth": ctx.bit_depth,
                         "duration_seconds": ctx.output_duration,
-                    }
+                    },
                 )
         except Exception as e:
             if ctx.diagnostic_logger:
-                ctx.diagnostic_logger.log_error(f"Failed to save audio: {e}", "output")
+                ctx.diagnostic_logger.log_error(
+                    f"Failed to save audio: {e}", "output"
+                )
             raise
-
         _emit(ctx, "Done", 1.0)
         logger.info("Done.")
         ctx.stages_timing["output"] = time.perf_counter() - t0
@@ -321,18 +333,31 @@ class Pipeline:
 
 class VoiceConverter:
     def __init__(
-        self,
-        quality: ConversionQuality = ConversionQuality.BALANCED,
+        self, quality: ConversionQuality = ConversionQuality.BALANCED
     ) -> None:
         self.settings = QualitySettings.from_preset(quality)
         self.n_fft = AudioConstants.DEFAULT_N_FFT
         self.hop_length = self.n_fft // self.settings.hop_divisor
+        self._executor = ThreadPoolExecutor(max_workers=1)
         self.profile_engine = VoiceAnalysisEngine(
-            sample_rate=44100,
-            n_fft=self.n_fft,
-            hop_length=self.hop_length,
+            sample_rate=44100, n_fft=self.n_fft, hop_length=self.hop_length
         )
         self.phase_processor = PhaseProcessor(self.n_fft, self.hop_length)
+
+    def close(self) -> None:
+        self._executor.shutdown(wait=False)
+
+    def _build_pipeline(self) -> Pipeline:
+        return Pipeline(
+            [
+                LoadStage(),
+                AnalysisStage(self.profile_engine, self.n_fft, self.hop_length),
+                MatchingStage(self.profile_engine, self.n_fft, self.hop_length),
+                ShiftingStage(self.phase_processor),
+                MetricsStage(),
+                OutputStage(),
+            ]
+        )
 
     def process(
         self,
@@ -347,13 +372,13 @@ class VoiceConverter:
     ) -> ConversionReport:
         if not os.path.exists(input_path):
             raise FileNotFoundError(f"Input file not found: {input_path}")
-
         if diagnostic_logger is None:
             import uuid
+
             diagnostic_logger = DiagnosticLogger(str(uuid.uuid4())[:8])
-
-        diagnostic_logger.log_input(input_path, output_path, self.settings.__class__.__name__)
-
+        diagnostic_logger.log_input(
+            input_path, output_path, self.settings.__class__.__name__
+        )
         ctx = PipelineContext(
             input_path=input_path,
             output_path=output_path,
@@ -367,16 +392,8 @@ class VoiceConverter:
             settings=self.settings,
             diagnostic_logger=diagnostic_logger,
         )
-
         try:
-            pipeline = Pipeline([
-                LoadStage(),
-                AnalysisStage(self.profile_engine, self.n_fft, self.hop_length),
-                MatchingStage(self.profile_engine, self.n_fft, self.hop_length),
-                ShiftingStage(self.phase_processor),
-                MetricsStage(),
-                OutputStage(),
-            ])
+            pipeline = self._build_pipeline()
             ctx = pipeline.run(ctx)
         except (FileNotFoundError, AnalysisError, ProfileQualityError):
             raise
@@ -384,8 +401,12 @@ class VoiceConverter:
             diagnostic_logger.log_error(str(e), "pipeline")
             raise ConversionError(f"Conversion failed: {e}") from e
         finally:
-            diagnostic_logger.finalize()
-
+            try:
+                diagnostic_logger.finalize()
+            except Exception as finalize_error:
+                logger.error(
+                    f"Diagnostic finalization failed: {finalize_error}"
+                )
         return ConversionReport(
             output_path=output_path,
             pitch_shift_applied=ctx.pitch_shift,
@@ -409,7 +430,6 @@ class VoiceConverter:
     ) -> List[str]:
         results: List[str] = []
         total = len(file_pairs)
-
         for idx, (inp, out) in enumerate(file_pairs):
             if on_file_progress is not None:
                 on_file_progress(idx, total, inp)
@@ -422,10 +442,8 @@ class VoiceConverter:
                 bit_depth=bit_depth,
             )
             results.append(out)
-
         if on_file_progress is not None:
             on_file_progress(total, total, "Complete")
-
         return results
 
     async def aprocess(
@@ -438,21 +456,19 @@ class VoiceConverter:
         bit_depth: int = 16,
         on_progress: Optional[ProgressCallback] = None,
     ) -> ConversionReport:
-        loop = asyncio.get_event_loop()
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            result = await loop.run_in_executor(
-                executor,
-                lambda: self.process(
-                    input_path,
-                    output_path,
-                    pitch_shift=pitch_shift,
-                    formant_shift=formant_shift,
-                    target_path=target_path,
-                    bit_depth=bit_depth,
-                    on_progress=on_progress,
-                ),
-            )
-        return result
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(
+            self._executor,
+            lambda: self.process(
+                input_path,
+                output_path,
+                pitch_shift=pitch_shift,
+                formant_shift=formant_shift,
+                target_path=target_path,
+                bit_depth=bit_depth,
+                on_progress=on_progress,
+            ),
+        )
 
     async def aprocess_batch(
         self,
@@ -463,20 +479,18 @@ class VoiceConverter:
         bit_depth: int = 16,
         on_file_progress: Optional[Callable[[int, int, str], None]] = None,
     ) -> List[str]:
-        loop = asyncio.get_event_loop()
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            results = await loop.run_in_executor(
-                executor,
-                lambda: self.process_batch(
-                    file_pairs,
-                    pitch_shift=pitch_shift,
-                    formant_shift=formant_shift,
-                    target_path=target_path,
-                    bit_depth=bit_depth,
-                    on_file_progress=on_file_progress,
-                ),
-            )
-        return results
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(
+            self._executor,
+            lambda: self.process_batch(
+                file_pairs,
+                pitch_shift=pitch_shift,
+                formant_shift=formant_shift,
+                target_path=target_path,
+                bit_depth=bit_depth,
+                on_file_progress=on_file_progress,
+            ),
+        )
 
     def stream(
         self,
@@ -487,7 +501,9 @@ class VoiceConverter:
     ):
         effective_pitch = pitch_shift if pitch_shift is not None else 0.0
         effective_formant = formant_shift if formant_shift is not None else 1.0
-        effective_quality = quality if quality is not None else ConversionQuality.FAST
+        effective_quality = (
+            quality if quality is not None else ConversionQuality.FAST
+        )
         processor = VoiceStreamProcessor(
             sample_rate=44100,
             pitch_shift=effective_pitch,

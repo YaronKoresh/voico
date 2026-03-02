@@ -23,14 +23,7 @@ class ConversionQualityScore:
 
     def __str__(self) -> str:
         viability = "✓ VIABLE" if self.is_viable else "✗ NOT VIABLE"
-        return (
-            f"[{viability}] Overall Score: {self.overall_score:.1f}/100\n"
-            f"  Pitch:   {self.pitch_score:.1f}/100\n"
-            f"  Formant: {self.formant_score:.1f}/100\n"
-            f"  Profile: {self.profile_score:.1f}/100\n"
-            f"Critical Issues: {len(self.critical_issues)}\n"
-            f"Warnings: {len(self.warnings)}"
-        )
+        return f"[{viability}] Overall Score: {self.overall_score:.1f}/100\n  Pitch:   {self.pitch_score:.1f}/100\n  Formant: {self.formant_score:.1f}/100\n  Profile: {self.profile_score:.1f}/100\nCritical Issues: {len(self.critical_issues)}\nWarnings: {len(self.warnings)}"
 
 
 class QualityScorer:
@@ -43,41 +36,30 @@ class QualityScorer:
             profile.formants, profile.sample_rate, profile.pitch
         ).validate()
         profile_result = ProfileValidationGate(profile).validate()
-
         overall = np.mean(
             [pitch_result.score, formant_result.score, profile_result.score]
         )
-
         critical_issues = []
         warnings = []
-
         if not pitch_result.passed:
             critical_issues.extend(pitch_result.issues)
-        else:
-            if pitch_result.score < 70:
-                warnings.extend(pitch_result.issues)
-
+        elif pitch_result.score < 70:
+            warnings.extend(pitch_result.issues)
         if not formant_result.passed:
             critical_issues.extend(formant_result.issues)
-        else:
-            if formant_result.score < 70:
-                warnings.extend(formant_result.issues)
-
+        elif formant_result.score < 70:
+            warnings.extend(formant_result.issues)
         if not profile_result.passed:
             critical_issues.extend(profile_result.issues)
-        else:
-            if profile_result.score < 70:
-                warnings.extend(profile_result.issues)
-
+        elif profile_result.score < 70:
+            warnings.extend(profile_result.issues)
         all_suggestions = (
             pitch_result.recovery_suggestions
             + formant_result.recovery_suggestions
             + profile_result.recovery_suggestions
         )
         unique_suggestions = list(dict.fromkeys(all_suggestions))
-
         is_viable = overall >= self.min_viable_score
-
         return ConversionQualityScore(
             overall_score=float(overall),
             pitch_score=float(pitch_result.score),

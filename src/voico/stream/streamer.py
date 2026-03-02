@@ -1,6 +1,6 @@
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-from typing import AsyncIterator, Iterator, Optional
+from typing import AsyncIterator, Iterator
 
 import numpy as np
 import scipy.signal
@@ -33,49 +33,51 @@ class VoiceStreamProcessor:
         n = len(chunk)
         output_samples = np.zeros(n, dtype=np.float32)
         pos = 0
-
         while pos < n:
             space = self._hop_length - self._buffer_pos % self._hop_length
             take = min(space, n - pos)
             write_start = self._buffer_pos % len(self._buffer)
             write_end = min(write_start + take, len(self._buffer))
             actual_take = write_end - write_start
-            self._buffer[write_start:write_end] = chunk[pos:pos + actual_take]
+            self._buffer[write_start:write_end] = chunk[pos : pos + actual_take]
             self._buffer_pos += actual_take
             pos += actual_take
-
-            if self._buffer_pos > 0 and self._buffer_pos % self._hop_length == 0:
+            if (
+                self._buffer_pos > 0
+                and self._buffer_pos % self._hop_length == 0
+            ):
                 buf_start = max(0, self._buffer_pos - self._n_fft)
-                frame = self._buffer[buf_start % len(self._buffer):
-                                     buf_start % len(self._buffer) + min(self._n_fft, len(self._buffer))]
+                frame = self._buffer[
+                    buf_start % len(self._buffer) : buf_start
+                    % len(self._buffer)
+                    + min(self._n_fft, len(self._buffer))
+                ]
                 if len(frame) < self._n_fft:
                     frame = np.pad(frame, (0, self._n_fft - len(frame)))
-                processed = self._process_frame(frame[:self._n_fft])
+                processed = self._process_frame(frame[: self._n_fft])
                 out_start = max(0, pos - len(processed))
                 out_len = min(len(processed), n - out_start)
-                output_samples[out_start:out_start + out_len] += processed[:out_len] * 0.5
-
+                output_samples[out_start : out_start + out_len] += (
+                    processed[:out_len] * 0.5
+                )
         return output_samples
 
     def _process_frame(self, frame: np.ndarray) -> np.ndarray:
         windowed = frame * self._window.astype(np.float32)
-
-        if abs(self.pitch_shift) < 0.01 and abs(self.formant_shift - 1.0) < 0.01:
+        if (
+            abs(self.pitch_shift) < 0.01
+            and abs(self.formant_shift - 1.0) < 0.01
+        ):
             return windowed
-
         spectrum = np.fft.rfft(windowed)
         magnitude = np.abs(spectrum)
         phase = np.angle(spectrum)
-
         if abs(self.formant_shift - 1.0) >= 0.01:
             n_bins = len(magnitude)
             target_bins = np.clip(
                 np.arange(n_bins) * self.formant_shift, 0, n_bins - 1
             )
-            magnitude = np.interp(
-                np.arange(n_bins), target_bins, magnitude
-            )
-
+            magnitude = np.interp(np.arange(n_bins), target_bins, magnitude)
         if abs(self.pitch_shift) >= 0.01:
             factor = 2.0 ** (self.pitch_shift / 12.0)
             n_bins = len(magnitude)
@@ -86,9 +88,8 @@ class VoiceStreamProcessor:
                 src_bins[valid], np.arange(n_bins), magnitude
             )
             magnitude = new_mag
-
         reconstructed = magnitude * np.exp(1j * phase)
-        return np.fft.irfft(reconstructed).astype(np.float32)[:len(frame)]
+        return np.fft.irfft(reconstructed).astype(np.float32)[: len(frame)]
 
     def flush(self) -> np.ndarray:
         remaining = np.zeros(self._n_fft, dtype=np.float32)
@@ -99,8 +100,7 @@ class VoiceStreamProcessor:
         return result
 
     def stream(
-        self,
-        audio_iterator: Iterator[np.ndarray],
+        self, audio_iterator: Iterator[np.ndarray]
     ) -> Iterator[np.ndarray]:
         for chunk in audio_iterator:
             output = self.process_chunk(chunk)
@@ -111,8 +111,7 @@ class VoiceStreamProcessor:
             yield final
 
     async def astream(
-        self,
-        audio_iterator: AsyncIterator[np.ndarray],
+        self, audio_iterator: AsyncIterator[np.ndarray]
     ) -> AsyncIterator[np.ndarray]:
         loop = asyncio.get_event_loop()
         executor = ThreadPoolExecutor(max_workers=1)

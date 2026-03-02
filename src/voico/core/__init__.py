@@ -14,7 +14,13 @@ from .protocols import (
     ShifterProtocol,
     SpectralAnalyzerProtocol,
 )
-from .types import ConversionReport, FormantTrack, PitchContour, SpectralFeatures, VoiceProfile
+from .types import (
+    ConversionReport,
+    FormantTrack,
+    PitchContour,
+    SpectralFeatures,
+    VoiceProfile,
+)
 
 __all__ = [
     "AnalysisError",
@@ -33,6 +39,6 @@ __all__ = [
     "ShifterProtocol",
     "SpectralAnalyzerProtocol",
     "SpectralFeatures",
-    "VoicoError",
     "VoiceProfile",
+    "VoicoError",
 ]

@@ -59,14 +59,14 @@ class TestAudioConstants:
 
     def test_fft_size_is_power_of_two(self) -> None:
         n = AudioConstants.DEFAULT_N_FFT
-        assert n > 0 and (n & (n - 1)) == 0
+        assert n > 0 and n & n - 1 == 0
 
     def test_formant_defaults_length(self) -> None:
         assert len(AudioConstants.DEFAULT_FORMANT_FREQS) == 5
         assert len(AudioConstants.DEFAULT_FORMANT_BANDWIDTHS) == 5
 
     def test_epsilon_is_small_positive(self) -> None:
-        assert 0 < AudioConstants.EPSILON < 1e-5
+        assert 0 < AudioConstants.EPSILON < 1e-05
 
 
 class TestDataclasses:
@@ -92,24 +92,16 @@ class TestDataclasses:
 
     def test_spectral_features_creation(self) -> None:
         features = SpectralFeatures(
-            envelope=np.ones((100, 10)),
-            spectral_tilt=-1.5,
+            envelope=np.ones((100, 10)), spectral_tilt=-1.5
         )
         assert features.spectral_tilt == -1.5
 
     def test_voice_profile_creation(self) -> None:
         pitch = PitchContour(
-            np.array([100.0]),
-            np.array([True]),
-            100.0,
-            0.0,
-            20.0,
+            np.array([100.0]), np.array([True]), 100.0, 0.0, 20.0
         )
         formants = FormantTrack(
-            np.zeros((5, 1)),
-            np.zeros((5, 1)),
-            np.zeros(5),
-            np.zeros(5),
+            np.zeros((5, 1)), np.zeros((5, 1)), np.zeros(5), np.zeros(5)
         )
         spectral = SpectralFeatures(np.ones((100, 1)), -1.0)
         profile = VoiceProfile(
@@ -134,6 +126,5 @@ class TestErrors:
     def test_raise_and_catch(self) -> None:
         with pytest.raises(VoicoError):
             raise AudioLoadError("test")
-
         with pytest.raises(VoicoError):
             raise ConversionError("test")

@@ -7,9 +7,9 @@ from .gates import (
 from .quality_score import ConversionQualityScore
 
 __all__ = [
-    "PitchValidationGate",
-    "FormantValidationGate",
-    "ProfileValidationGate",
-    "DiagnosticLogger",
     "ConversionQualityScore",
+    "DiagnosticLogger",
+    "FormantValidationGate",
+    "PitchValidationGate",
+    "ProfileValidationGate",
 ]

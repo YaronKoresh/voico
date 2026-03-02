@@ -20,7 +20,6 @@ class TestPitchAnalyzer:
     ) -> None:
         analyzer = PitchAnalyzer(sample_rate, hop_length=512, n_fft=2048)
         contour = analyzer.detect(sine_wave_440hz)
-
         assert isinstance(contour, PitchContour)
         assert contour.f0_mean > 0
         assert len(contour.f0) > 0
@@ -52,11 +51,9 @@ class TestPitchAnalyzer:
         t = np.linspace(0, 1.0, sample_rate, endpoint=False)
         low = np.sin(2 * np.pi * 100 * t).astype(np.float32)
         high = np.sin(2 * np.pi * 400 * t).astype(np.float32)
-
         analyzer = PitchAnalyzer(sample_rate, hop_length=512, n_fft=2048)
         low_contour = analyzer.detect(low)
         high_contour = analyzer.detect(high)
-
         assert low_contour.f0_mean < high_contour.f0_mean
 
 
@@ -67,7 +64,6 @@ class TestFormantAnalyzer:
         analyzer = FormantAnalyzer(sample_rate, hop_length=512)
         f0_contour = np.full(86, 440.0)
         track = analyzer.analyze(sine_wave_440hz, f0_contour)
-
         assert isinstance(track, FormantTrack)
         assert track.frequencies.shape[0] == 5
         assert len(track.mean_frequencies) == 5
@@ -112,7 +108,6 @@ class TestSpectralAnalyzer:
     ) -> None:
         analyzer = SpectralAnalyzer(sample_rate, n_fft=2048, hop_length=512)
         features = analyzer.analyze(sine_wave_440hz)
-
         assert isinstance(features, SpectralFeatures)
         assert features.envelope.shape[0] > 0
         assert isinstance(features.spectral_tilt, float)
@@ -122,14 +117,11 @@ class TestSpectralAnalyzer:
     ) -> None:
         analyzer = SpectralAnalyzer(sample_rate, n_fft=2048, hop_length=512)
         f0 = np.full(86, 440.0)
-        energy, ratios = analyzer.compute_harmonic_stats(
-            sine_wave_440hz, f0
-        )
-
+        (energy, ratios) = analyzer.compute_harmonic_stats(sine_wave_440hz, f0)
         assert len(energy) > 0
         assert len(ratios) == len(energy)
         assert np.all(ratios >= 0)
-        assert np.all(ratios <= 1.0 + 1e-6)
+        assert np.all(ratios <= 1.0 + 1e-06)
 
     def test_analyze_noise(
         self, white_noise: np.ndarray, sample_rate: int
@@ -153,11 +145,8 @@ class TestVoiceAnalysisEngine:
     def test_build_profile(
         self, sine_wave_440hz: np.ndarray, sample_rate: int
     ) -> None:
-        engine = VoiceAnalysisEngine(
-            sample_rate, n_fft=2048, hop_length=512
-        )
+        engine = VoiceAnalysisEngine(sample_rate, n_fft=2048, hop_length=512)
         profile = engine.build(sine_wave_440hz, "Test")
-
         assert isinstance(profile, VoiceProfile)
         assert profile.sample_rate == sample_rate
         assert profile.pitch.f0_mean > 0
@@ -165,7 +154,6 @@ class TestVoiceAnalysisEngine:
     def test_sample_rate_property_updates_analyzers(self) -> None:
         engine = VoiceAnalysisEngine(44100, n_fft=2048, hop_length=512)
         assert engine.sample_rate == 44100
-
         engine.sample_rate = 22050
         assert engine.sample_rate == 22050
         assert engine.pitch_analyzer.sample_rate == 22050
@@ -181,16 +169,12 @@ class TestVoiceAnalysisEngine:
     def test_aligned_output_lengths(
         self, sine_wave_440hz: np.ndarray, sample_rate: int
     ) -> None:
-        engine = VoiceAnalysisEngine(
-            sample_rate, n_fft=2048, hop_length=512
-        )
+        engine = VoiceAnalysisEngine(sample_rate, n_fft=2048, hop_length=512)
         profile = engine.build(sine_wave_440hz)
-
         pitch_len = len(profile.pitch.f0)
         formant_len = profile.formants.frequencies.shape[1]
         spectral_len = profile.spectral.envelope.shape[1]
         energy_len = len(profile.harmonic_energy)
-
         assert pitch_len == formant_len
         assert formant_len == spectral_len
         assert spectral_len == energy_len
@@ -227,8 +211,7 @@ class TestVoiceMatcher:
         freqs = np.array([500.0, 1500.0, 2500.0, 3500.0, 4500.0])
         source = self._make_profile(200.0, freqs)
         target = self._make_profile(200.0, freqs)
-
-        semitones, factor = VoiceMatcher.match(source, target)
+        (semitones, factor) = VoiceMatcher.match(source, target)
         assert abs(semitones) < 0.01
         assert abs(factor - 1.0) < 0.01
 
@@ -236,8 +219,7 @@ class TestVoiceMatcher:
         freqs = np.array([500.0, 1500.0, 2500.0, 3500.0, 4500.0])
         source = self._make_profile(100.0, freqs)
         target = self._make_profile(200.0, freqs)
-
-        semitones, _ = VoiceMatcher.match(source, target)
+        (semitones, _) = VoiceMatcher.match(source, target)
         assert abs(semitones - 12.0) < 0.01
 
     def test_match_formant_shift(self) -> None:
@@ -245,8 +227,7 @@ class TestVoiceMatcher:
         tgt_freqs = np.array([600.0, 1800.0, 3000.0, 3500.0, 4500.0])
         source = self._make_profile(200.0, src_freqs)
         target = self._make_profile(200.0, tgt_freqs)
-
-        _, factor = VoiceMatcher.match(source, target)
+        (_, factor) = VoiceMatcher.match(source, target)
         assert factor > 1.0
 
     def test_match_clamps_formant_factor(self) -> None:
@@ -254,14 +235,12 @@ class TestVoiceMatcher:
         tgt_freqs = np.array([5000.0, 15000.0, 25000.0, 3500.0, 4500.0])
         source = self._make_profile(200.0, src_freqs)
         target = self._make_profile(200.0, tgt_freqs)
-
-        _, factor = VoiceMatcher.match(source, target)
+        (_, factor) = VoiceMatcher.match(source, target)
         assert factor <= 2.0
 
     def test_match_zero_pitch_defaults(self) -> None:
         freqs = np.array([500.0, 1500.0, 2500.0, 3500.0, 4500.0])
         source = self._make_profile(0.0, freqs)
         target = self._make_profile(200.0, freqs)
-
-        semitones, _ = VoiceMatcher.match(source, target)
+        (semitones, _) = VoiceMatcher.match(source, target)
         assert semitones == 0.0

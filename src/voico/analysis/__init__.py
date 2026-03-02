@@ -8,6 +8,6 @@ __all__ = [
     "FormantAnalyzer",
     "PitchAnalyzer",
     "SpectralAnalyzer",
-    "VoiceMatcher",
     "VoiceAnalysisEngine",
+    "VoiceMatcher",
 ]

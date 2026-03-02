@@ -32,9 +32,7 @@ class TestPhaseProcessor:
         processor = PhaseProcessor(n_fft=256, hop_length=64)
         magnitude = np.random.rand(129, 20).astype(np.float32)
         phase = magnitude * np.exp(1j * np.random.rand(129, 20) * 2 * np.pi)
-        audio = processor.reconstruct(
-            magnitude, n_iter=4, initial_phase=phase
-        )
+        audio = processor.reconstruct(magnitude, n_iter=4, initial_phase=phase)
         assert len(audio) > 0
 
     def test_reconstruct_roundtrip_quality(self) -> None:

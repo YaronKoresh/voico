@@ -5,7 +5,6 @@ import scipy.signal as signal
 
 from ..core.constants import AudioConstants
 from ..core.types import SpectralFeatures
-from ..utils.math_utils import safe_divide
 
 
 class SpectralAnalyzer:
@@ -46,47 +45,7 @@ class SpectralAnalyzer:
         self, audio: np.ndarray, f0: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray]:
         magnitude = self._get_magnitude(audio)
-        frequency_bins = np.fft.rfftfreq(self.n_fft, 1 / self.sample_rate)
-        freq_resolution = (
-            frequency_bins[1] if len(frequency_bins) > 1 else 1.0
-        )
-
-        n_frames = min(magnitude.shape[1], len(f0))
-        total_energy = np.sum(magnitude[:, :n_frames] ** 2, axis=0)
-
-        harmonic_energy = np.zeros(n_frames)
-        harmonic_ratios = np.zeros(n_frames)
-
-        voiced_mask = f0[:n_frames] > AudioConstants.MIN_F0_HZ
-        voiced_indices = np.where(voiced_mask)[0]
-
-        for t in voiced_indices:
-            fundamental = f0[t]
-            harmonic_mask = np.zeros(len(frequency_bins), dtype=bool)
-
-            for h in range(1, 11):
-                center = h * fundamental
-                if center > frequency_bins[-1]:
-                    break
-                idx = min(
-                    int(round(center / freq_resolution)),
-                    len(frequency_bins) - 1,
-                )
-                width = max(1, int(idx * 0.05))
-                lo = max(0, idx - width)
-                hi = min(len(frequency_bins), idx + width + 1)
-                harmonic_mask[lo:hi] = True
-
-            frame_harmonic_energy = np.sum(
-                magnitude[harmonic_mask, t] ** 2
-            )
-            harmonic_energy[t] = frame_harmonic_energy
-            if total_energy[t] > 0:
-                harmonic_ratios[t] = (
-                    frame_harmonic_energy / total_energy[t]
-                )
-
-        return harmonic_energy, harmonic_ratios
+        return self._compute_harmonic_stats_core(magnitude, f0)
 
     def analyze_with_magnitude(self, magnitude: np.ndarray) -> SpectralFeatures:
         envelope = self._compute_cepstral_envelope(magnitude)
@@ -96,52 +55,48 @@ class SpectralAnalyzer:
     def compute_harmonic_stats_with_magnitude(
         self, magnitude: np.ndarray, f0: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray]:
+        return self._compute_harmonic_stats_core(magnitude, f0)
+
+    def _compute_harmonic_stats_core(
+        self, magnitude: np.ndarray, f0: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray]:
         frequency_bins = np.fft.rfftfreq(self.n_fft, 1 / self.sample_rate)
-        freq_resolution = (
-            frequency_bins[1] if len(frequency_bins) > 1 else 1.0
-        )
-
+        freq_resolution = frequency_bins[1] if len(frequency_bins) > 1 else 1.0
         n_frames = min(magnitude.shape[1], len(f0))
+        if n_frames == 0:
+            return (
+                np.zeros(0, dtype=np.float32),
+                np.zeros(0, dtype=np.float32),
+            )
         total_energy = np.sum(magnitude[:, :n_frames] ** 2, axis=0)
-
-        harmonic_energy = np.zeros(n_frames)
-        harmonic_ratios = np.zeros(n_frames)
-
+        harmonic_energy = np.zeros(n_frames, dtype=np.float32)
+        harmonic_ratios = np.zeros(n_frames, dtype=np.float32)
         voiced_mask = f0[:n_frames] > AudioConstants.MIN_F0_HZ
         voiced_indices = np.where(voiced_mask)[0]
-
+        harmonic_mask = np.zeros(len(frequency_bins), dtype=bool)
         for t in voiced_indices:
             fundamental = f0[t]
-            harmonic_mask = np.zeros(len(frequency_bins), dtype=bool)
-
+            harmonic_mask.fill(False)
             for h in range(1, 11):
                 center = h * fundamental
                 if center > frequency_bins[-1]:
                     break
                 idx = min(
-                    int(round(center / freq_resolution)),
+                    round(center / freq_resolution),
                     len(frequency_bins) - 1,
                 )
                 width = max(1, int(idx * 0.05))
                 lo = max(0, idx - width)
                 hi = min(len(frequency_bins), idx + width + 1)
                 harmonic_mask[lo:hi] = True
-
-            frame_harmonic_energy = np.sum(
-                magnitude[harmonic_mask, t] ** 2
-            )
+            frame_harmonic_energy = np.sum(magnitude[harmonic_mask, t] ** 2)
             harmonic_energy[t] = frame_harmonic_energy
             if total_energy[t] > 0:
-                harmonic_ratios[t] = (
-                    frame_harmonic_energy / total_energy[t]
-                )
-
-        return harmonic_energy, harmonic_ratios
+                harmonic_ratios[t] = frame_harmonic_energy / total_energy[t]
+        return (harmonic_energy, harmonic_ratios)
 
     def _compute_cepstral_envelope(
-        self,
-        magnitude_spectrum: np.ndarray,
-        cepstral_coefficients: int = 20,
+        self, magnitude_spectrum: np.ndarray, cepstral_coefficients: int = 20
     ) -> np.ndarray:
         log_magnitude = np.log(magnitude_spectrum + AudioConstants.EPSILON)
         cepstrum = np.fft.rfft(log_magnitude, axis=0)
@@ -153,15 +108,12 @@ class SpectralAnalyzer:
     def _compute_spectral_tilt(self, magnitude_spectrum: np.ndarray) -> float:
         average_spectrum = np.mean(magnitude_spectrum, axis=1)
         frequency_bins = np.fft.rfftfreq(self.n_fft, 1 / self.sample_rate)
-
         valid = (frequency_bins > 100) & (frequency_bins < 8000)
         if np.sum(valid) < 10:
             return 0.0
-
         log_frequencies = np.log(frequency_bins[valid])
         log_magnitudes = np.log(
             average_spectrum[valid] + AudioConstants.EPSILON
         )
-
-        slope, _ = np.polyfit(log_frequencies, log_magnitudes, 1)
+        (slope, _) = np.polyfit(log_frequencies, log_magnitudes, 1)
         return slope

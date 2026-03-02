@@ -6,7 +6,6 @@ import pytest
 
 from voico.converter import VoiceConverter
 from voico.core.config import ConversionQuality
-from voico.core.errors import ConversionError
 from voico.core.types import ConversionReport
 from voico.utils.audio_io import save_audio
 
@@ -35,12 +34,9 @@ class TestVoiceConverter:
             input_path = os.path.join(tmpdir, "input.wav")
             output_path = os.path.join(tmpdir, "output.wav")
             _create_test_wav(input_path)
-
             converter = VoiceConverter(ConversionQuality.TURBO)
             converter.process(
-                input_path=input_path,
-                output_path=output_path,
-                pitch_shift=2.0,
+                input_path=input_path, output_path=output_path, pitch_shift=2.0
             )
             assert os.path.exists(output_path)
 
@@ -49,7 +45,6 @@ class TestVoiceConverter:
             input_path = os.path.join(tmpdir, "input.wav")
             output_path = os.path.join(tmpdir, "output.wav")
             _create_test_wav(input_path)
-
             converter = VoiceConverter(ConversionQuality.TURBO)
             converter.process(
                 input_path=input_path,
@@ -65,7 +60,6 @@ class TestVoiceConverter:
             output_path = os.path.join(tmpdir, "output.wav")
             _create_test_wav(input_path, frequency=200.0)
             _create_test_wav(target_path, frequency=400.0)
-
             converter = VoiceConverter(ConversionQuality.TURBO)
             converter.process(
                 input_path=input_path,
@@ -78,15 +72,13 @@ class TestVoiceConverter:
         converter = VoiceConverter()
         with pytest.raises(FileNotFoundError):
             converter.process(
-                input_path="/nonexistent.wav",
-                output_path="/output.wav",
+                input_path="/nonexistent.wav", output_path="/output.wav"
             )
 
     def test_process_missing_target(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             input_path = os.path.join(tmpdir, "input.wav")
             _create_test_wav(input_path)
-
             converter = VoiceConverter()
             with pytest.raises(FileNotFoundError):
                 converter.process(
@@ -100,7 +92,6 @@ class TestVoiceConverter:
             input_path = os.path.join(tmpdir, "input.wav")
             output_path = os.path.join(tmpdir, "output.wav")
             _create_test_wav(input_path)
-
             converter = VoiceConverter(ConversionQuality.TURBO)
             converter.process(
                 input_path=input_path,
@@ -115,16 +106,13 @@ class TestVoiceConverter:
             input_path = os.path.join(tmpdir, "input.wav")
             output_path = os.path.join(tmpdir, "output.wav")
             _create_test_wav(input_path)
-
             steps = []
             converter = VoiceConverter(ConversionQuality.TURBO)
             converter.process(
                 input_path=input_path,
                 output_path=output_path,
                 pitch_shift=2.0,
-                on_progress=lambda step, frac: steps.append(
-                    (step, frac)
-                ),
+                on_progress=lambda step, frac: steps.append((step, frac)),
             )
             assert os.path.exists(output_path)
             assert len(steps) > 0
@@ -135,7 +123,6 @@ class TestVoiceConverter:
             input_path = os.path.join(tmpdir, "input.wav")
             output_path = os.path.join(tmpdir, "output.wav")
             _create_test_wav(input_path)
-
             converter = VoiceConverter(ConversionQuality.TURBO)
             converter.process(
                 input_path=input_path,
@@ -153,7 +140,6 @@ class TestVoiceConverter:
                 out = os.path.join(tmpdir, f"output_{i}.wav")
                 _create_test_wav(inp)
                 pairs.append((inp, out))
-
             progress_calls = []
             converter = VoiceConverter(ConversionQuality.TURBO)
             results = converter.process_batch(
@@ -163,7 +149,6 @@ class TestVoiceConverter:
                     (i, t, p)
                 ),
             )
-
             assert len(results) == 3
             for out_path in results:
                 assert os.path.exists(out_path)
@@ -179,9 +164,7 @@ class TestConversionReport:
             _create_test_wav(input_path)
             converter = VoiceConverter(ConversionQuality.TURBO)
             report = converter.process(
-                input_path=input_path,
-                output_path=output_path,
-                pitch_shift=1.0,
+                input_path=input_path, output_path=output_path, pitch_shift=1.0
             )
             assert isinstance(report, ConversionReport)
             assert report.output_path == output_path
@@ -194,11 +177,11 @@ class TestConversionReport:
 class TestAsyncAPI:
     def test_aprocess(self) -> None:
         import asyncio
+
         with tempfile.TemporaryDirectory() as tmpdir:
             input_path = os.path.join(tmpdir, "input.wav")
             output_path = os.path.join(tmpdir, "output.wav")
             _create_test_wav(input_path)
-
             converter = VoiceConverter(ConversionQuality.TURBO)
 
             async def run():
@@ -214,11 +197,14 @@ class TestAsyncAPI:
 
     def test_aprocess_batch(self) -> None:
         import asyncio
+
         with tempfile.TemporaryDirectory() as tmpdir:
-            pairs = [(
-                os.path.join(tmpdir, "in.wav"),
-                os.path.join(tmpdir, "out.wav"),
-            )]
+            pairs = [
+                (
+                    os.path.join(tmpdir, "in.wav"),
+                    os.path.join(tmpdir, "out.wav"),
+                )
+            ]
             _create_test_wav(pairs[0][0])
             converter = VoiceConverter(ConversionQuality.TURBO)
 
@@ -235,16 +221,17 @@ class TestStreaming:
         sample_rate = 44100
         t = np.linspace(0, 0.5, int(sample_rate * 0.5), endpoint=False)
         audio = (np.sin(2 * np.pi * 440 * t) * 0.5).astype(np.float32)
-
         chunk_size = 512
-        chunks = [audio[i:i+chunk_size] for i in range(0, len(audio), chunk_size)]
-
+        chunks = [
+            audio[i : i + chunk_size] for i in range(0, len(audio), chunk_size)
+        ]
         converter = VoiceConverter(ConversionQuality.FAST)
         outputs = list(converter.stream(iter(chunks), pitch_shift=2.0))
         assert len(outputs) > 0
 
     def test_voice_stream_processor_direct(self) -> None:
         from voico.stream.streamer import VoiceStreamProcessor
+
         processor = VoiceStreamProcessor(
             sample_rate=44100,
             pitch_shift=2.0,

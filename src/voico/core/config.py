@@ -20,7 +20,6 @@ class QualitySettings(BaseModel):
     spectral_detail_preservation: float
     use_advanced_phase: bool
     use_formant_correction: bool
-
     model_config = {"frozen": True}
 
     @field_validator("hop_divisor")
@@ -47,8 +46,10 @@ class QualitySettings(BaseModel):
     @field_validator("spectral_detail_preservation")
     @classmethod
     def spectral_detail_in_range(cls, v: float) -> float:
-        if not (0.0 <= v <= 1.0):
-            raise ValueError(f"spectral_detail_preservation must be in [0, 1], got {v}")
+        if not 0.0 <= v <= 1.0:
+            raise ValueError(
+                f"spectral_detail_preservation must be in [0, 1], got {v}"
+            )
         return v
 
     @classmethod

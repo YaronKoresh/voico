@@ -4,7 +4,6 @@ import tempfile
 import numpy as np
 import pytest
 
-from voico.core.config import ConversionQuality
 from voico.main import main, parse_args, setup_logging
 from voico.utils.audio_io import save_audio
 
@@ -26,9 +25,7 @@ class TestSetupLogging:
 
 class TestParseArgs:
     def test_minimal_args(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setattr(
-            "sys.argv", ["voico", "input.wav"]
-        )
+        monkeypatch.setattr("sys.argv", ["voico", "input.wav"])
         args = parse_args()
         assert args.input_file == "input.wav"
         assert args.pitch == 0.0
@@ -42,13 +39,20 @@ class TestParseArgs:
         monkeypatch.setattr(
             "sys.argv",
             [
-                "voico", "in.wav",
-                "-t", "target.wav",
-                "-o", "out.wav",
-                "-p", "3.5",
-                "-f", "1.2",
-                "-q", "master",
-                "-b", "32",
+                "voico",
+                "in.wav",
+                "-t",
+                "target.wav",
+                "-o",
+                "out.wav",
+                "-p",
+                "3.5",
+                "-f",
+                "1.2",
+                "-q",
+                "master",
+                "-b",
+                "32",
                 "-v",
             ],
         )
@@ -63,20 +67,14 @@ class TestParseArgs:
         assert args.verbose is True
 
     def test_info_flag(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setattr(
-            "sys.argv", ["voico", "input.wav", "--info"]
-        )
+        monkeypatch.setattr("sys.argv", ["voico", "input.wav", "--info"])
         args = parse_args()
         assert args.info is True
 
 
 class TestMain:
-    def test_missing_input_exits(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        monkeypatch.setattr(
-            "sys.argv", ["voico", "/nonexistent_file.wav"]
-        )
+    def test_missing_input_exits(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr("sys.argv", ["voico", "/nonexistent_file.wav"])
         with pytest.raises(SystemExit) as exc_info:
             main()
         assert exc_info.value.code == 1
@@ -105,10 +103,14 @@ class TestMain:
             monkeypatch.setattr(
                 "sys.argv",
                 [
-                    "voico", input_path,
-                    "-o", output_path,
-                    "-p", "1.0",
-                    "-q", "turbo",
+                    "voico",
+                    input_path,
+                    "-o",
+                    output_path,
+                    "-p",
+                    "1.0",
+                    "-q",
+                    "turbo",
                 ],
             )
             main()
@@ -121,8 +123,7 @@ class TestMain:
             input_path = os.path.join(tmpdir, "input.wav")
             _create_wav(input_path)
             monkeypatch.setattr(
-                "sys.argv",
-                ["voico", input_path, "-p", "2.0", "-q", "turbo"],
+                "sys.argv", ["voico", input_path, "-p", "2.0", "-q", "turbo"]
             )
             main()
             expected = os.path.join(tmpdir, "input_shifted_p2.0_f1.0.wav")
@@ -138,11 +139,7 @@ class TestMain:
             _create_wav(target_path)
             monkeypatch.setattr(
                 "sys.argv",
-                [
-                    "voico", input_path,
-                    "-t", target_path,
-                    "-q", "turbo",
-                ],
+                ["voico", input_path, "-t", target_path, "-q", "turbo"],
             )
             main()
             expected = os.path.join(tmpdir, "source_to_target.wav")
@@ -154,10 +151,7 @@ class TestMain:
         with tempfile.TemporaryDirectory() as tmpdir:
             input_path = os.path.join(tmpdir, "input.wav")
             _create_wav(input_path)
-            monkeypatch.setattr(
-                "sys.argv",
-                ["voico", input_path, "--info"],
-            )
+            monkeypatch.setattr("sys.argv", ["voico", input_path, "--info"])
             main()
             captured = capsys.readouterr()
             assert "Sample Rate" in captured.out

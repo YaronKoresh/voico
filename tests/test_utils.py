@@ -66,7 +66,7 @@ class TestAudioIO:
     def test_normalize_audio_peak(self) -> None:
         audio = np.array([0.5, -0.5, 0.25], dtype=np.float32)
         normalized = normalize_audio(audio, target_peak=0.95)
-        assert np.max(np.abs(normalized)) == pytest.approx(0.95, abs=1e-5)
+        assert np.max(np.abs(normalized)) == pytest.approx(0.95, abs=1e-05)
 
     def test_normalize_silence(self) -> None:
         audio = np.zeros(100, dtype=np.float32)
@@ -79,19 +79,15 @@ class TestAudioIO:
         assert result.shape == audio.shape
 
     def test_save_and_load_roundtrip(self) -> None:
-        audio = np.sin(
-            2 * np.pi * 440 * np.linspace(0, 0.1, 4410)
-        ).astype(np.float32)
+        audio = np.sin(2 * np.pi * 440 * np.linspace(0, 0.1, 4410)).astype(
+            np.float32
+        )
         audio = normalize_audio(audio, target_peak=0.9)
-
-        with tempfile.NamedTemporaryFile(
-            suffix=".wav", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
             temp_path = f.name
-
         try:
             save_audio(temp_path, audio, 44100)
-            loaded, sr = load_audio(temp_path)
+            (loaded, sr) = load_audio(temp_path)
             assert sr == 44100
             assert len(loaded) > 0
         finally:
@@ -108,30 +104,24 @@ class TestAudioIO:
 
     def test_save_clips_audio(self) -> None:
         audio = np.array([2.0, -2.0, 0.5], dtype=np.float32)
-        with tempfile.NamedTemporaryFile(
-            suffix=".wav", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
             temp_path = f.name
         try:
             save_audio(temp_path, audio, 44100)
-            loaded, _ = load_audio(temp_path)
-            assert np.max(np.abs(loaded)) <= 1.0 + 1e-3
+            (loaded, _) = load_audio(temp_path)
+            assert np.max(np.abs(loaded)) <= 1.0 + 0.001
         finally:
             os.unlink(temp_path)
 
     def test_save_float32_bit_depth(self) -> None:
-        audio = np.sin(
-            2 * np.pi * 440 * np.linspace(0, 0.1, 4410)
-        ).astype(np.float32)
-
-        with tempfile.NamedTemporaryFile(
-            suffix=".wav", delete=False
-        ) as f:
+        audio = np.sin(2 * np.pi * 440 * np.linspace(0, 0.1, 4410)).astype(
+            np.float32
+        )
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
             temp_path = f.name
-
         try:
             save_audio(temp_path, audio, 44100, bit_depth=32)
-            loaded, sr = load_audio(temp_path)
+            (loaded, sr) = load_audio(temp_path)
             assert sr == 44100
             assert len(loaded) > 0
         finally:
@@ -139,9 +129,7 @@ class TestAudioIO:
 
     def test_save_unsupported_bit_depth_raises(self) -> None:
         audio = np.zeros(100, dtype=np.float32)
-        with tempfile.NamedTemporaryFile(
-            suffix=".wav", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
             temp_path = f.name
         try:
             with pytest.raises(AudioSaveError):
@@ -151,9 +139,7 @@ class TestAudioIO:
 
     def test_save_unsupported_format_raises(self) -> None:
         audio = np.zeros(100, dtype=np.float32)
-        with tempfile.NamedTemporaryFile(
-            suffix=".mp3", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
             temp_path = f.name
         try:
             with pytest.raises(AudioSaveError):
@@ -164,15 +150,11 @@ class TestAudioIO:
 
 class TestGetAudioInfo:
     def test_get_info_wav(self) -> None:
-        audio = np.sin(
-            2 * np.pi * 440 * np.linspace(0, 0.5, 22050)
-        ).astype(np.float32)
-
-        with tempfile.NamedTemporaryFile(
-            suffix=".wav", delete=False
-        ) as f:
+        audio = np.sin(2 * np.pi * 440 * np.linspace(0, 0.5, 22050)).astype(
+            np.float32
+        )
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
             temp_path = f.name
-
         try:
             save_audio(temp_path, audio, 44100)
             info = get_audio_info(temp_path)
@@ -194,20 +176,16 @@ class TestAudioIOScipyFallback:
     ) -> None:
         import voico.utils.audio_io as aio
 
-        audio = np.sin(
-            2 * np.pi * 440 * np.linspace(0, 0.1, 4410)
-        ).astype(np.float32)
+        audio = np.sin(2 * np.pi * 440 * np.linspace(0, 0.1, 4410)).astype(
+            np.float32
+        )
         audio = normalize_audio(audio, target_peak=0.9)
-
-        with tempfile.NamedTemporaryFile(
-            suffix=".wav", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
             temp_path = f.name
-
         try:
             save_audio(temp_path, audio, 44100)
             monkeypatch.setattr(aio, "LIBROSA_AVAILABLE", False)
-            loaded, sr = load_audio(temp_path)
+            (loaded, sr) = load_audio(temp_path)
             assert sr == 44100
             assert len(loaded) > 0
         finally:
@@ -221,22 +199,17 @@ class TestAudioIOScipyFallback:
         import voico.utils.audio_io as aio
 
         audio_int32 = (
-            np.sin(2 * np.pi * 440 * np.linspace(0, 0.1, 4410))
-            * 2147483647
+            np.sin(2 * np.pi * 440 * np.linspace(0, 0.1, 4410)) * 2147483647
         ).astype(np.int32)
-
-        with tempfile.NamedTemporaryFile(
-            suffix=".wav", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
             temp_path = f.name
             wavmod.write(temp_path, 44100, audio_int32)
-
         try:
             monkeypatch.setattr(aio, "LIBROSA_AVAILABLE", False)
-            loaded, sr = load_audio(temp_path)
+            (loaded, sr) = load_audio(temp_path)
             assert sr == 44100
             assert loaded.dtype == np.float32
-            assert np.max(np.abs(loaded)) <= 1.0 + 1e-3
+            assert np.max(np.abs(loaded)) <= 1.0 + 0.001
         finally:
             os.unlink(temp_path)
 
@@ -251,16 +224,12 @@ class TestAudioIOScipyFallback:
         left = (np.sin(2 * np.pi * 440 * t) * 16384).astype(np.int16)
         right = (np.sin(2 * np.pi * 880 * t) * 16384).astype(np.int16)
         stereo = np.stack([left, right], axis=1)
-
-        with tempfile.NamedTemporaryFile(
-            suffix=".wav", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
             temp_path = f.name
             wavmod.write(temp_path, 44100, stereo)
-
         try:
             monkeypatch.setattr(aio, "LIBROSA_AVAILABLE", False)
-            loaded, sr = load_audio(temp_path)
+            (loaded, sr) = load_audio(temp_path)
             assert sr == 44100
             assert len(loaded.shape) == 1
         finally:
@@ -271,20 +240,16 @@ class TestAudioIOScipyFallback:
     ) -> None:
         import voico.utils.audio_io as aio
 
-        audio = np.sin(
-            2 * np.pi * 440 * np.linspace(0, 0.1, 4410)
-        ).astype(np.float32)
+        audio = np.sin(2 * np.pi * 440 * np.linspace(0, 0.1, 4410)).astype(
+            np.float32
+        )
         audio = normalize_audio(audio, target_peak=0.9)
-
-        with tempfile.NamedTemporaryFile(
-            suffix=".wav", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
             temp_path = f.name
-
         try:
             save_audio(temp_path, audio, 44100)
             monkeypatch.setattr(aio, "LIBROSA_AVAILABLE", False)
-            loaded, sr = load_audio(temp_path, target_sr=22050)
+            (_loaded, sr) = load_audio(temp_path, target_sr=22050)
             assert sr == 22050
         finally:
             os.unlink(temp_path)

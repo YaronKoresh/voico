@@ -10,7 +10,6 @@ from ..core.types import FormantTrack
 
 if LIBROSA_AVAILABLE:
     import librosa
-
 logger = logging.getLogger(__name__)
 
 
@@ -27,12 +26,12 @@ class FormantAnalyzer:
         self.n_formants = n_formants
         self.analysis_sample_rate = AudioConstants.FORMANT_ANALYSIS_SR
         self.lpc_order = lpc_order
+        self._window_cache = {}
 
     def analyze(
         self, audio: np.ndarray, f0_contour: np.ndarray
     ) -> FormantTrack:
         logger.info("Starting formant analysis")
-
         if LIBROSA_AVAILABLE:
             resampled_audio = librosa.resample(
                 audio,
@@ -54,14 +53,23 @@ class FormantAnalyzer:
                 resampled_audio = filtered_audio[::ratio]
             else:
                 resampled_audio = audio.copy()
-
         n_frames = len(f0_contour)
+        if n_frames == 0:
+            empty_tracks = np.zeros((self.n_formants, 0))
+            return FormantTrack(
+                empty_tracks,
+                empty_tracks.copy(),
+                np.array(
+                    AudioConstants.DEFAULT_FORMANT_FREQS[: self.n_formants]
+                ),
+                np.array(
+                    AudioConstants.DEFAULT_FORMANT_BANDWIDTHS[: self.n_formants]
+                ),
+            )
         frequencies = np.zeros((self.n_formants, n_frames))
         bandwidths = np.zeros((self.n_formants, n_frames))
-
         frame_length = int(0.025 * self.analysis_sample_rate)
         analysis_hop = max(1, len(resampled_audio) // n_frames)
-
         skipped_frames = 0
         for t in range(n_frames):
             start = t * analysis_hop
@@ -69,16 +77,12 @@ class FormantAnalyzer:
             if end > len(resampled_audio):
                 end = len(resampled_audio)
                 start = max(0, end - frame_length)
-
             frame = resampled_audio[start:end].astype(np.float64)
             if len(frame) < self.lpc_order + 2:
                 continue
-
             frame = np.append(frame[0], frame[1:] - 0.97 * frame[:-1])
-
-            window = get_window("hamming", len(frame))
+            window = self._get_hamming_window(len(frame))
             frame = frame * window
-
             f0_value = f0_contour[t] if t < len(f0_contour) else 0.0
             if (
                 np.isfinite(f0_value)
@@ -88,26 +92,20 @@ class FormantAnalyzer:
             else:
                 order = self.lpc_order
             order = min(order, len(frame) - 2)
-
             lpc_coefficients = self._levinson_durbin(frame, order)
             if lpc_coefficients is None:
                 skipped_frames += 1
                 continue
-
-            frame_frequencies, frame_bandwidths = self._lpc_to_formants(
+            (frame_frequencies, frame_bandwidths) = self._lpc_to_formants(
                 lpc_coefficients, self.analysis_sample_rate
             )
-
             n_found = min(len(frame_frequencies), self.n_formants)
             frequencies[:n_found, t] = frame_frequencies[:n_found]
             bandwidths[:n_found, t] = frame_bandwidths[:n_found]
-
         if skipped_frames > 0:
             logger.warning(
-                f"Skipped {skipped_frames}/{n_frames} frames "
-                f"due to LPC convergence failure"
+                f"Skipped {skipped_frames}/{n_frames} frames due to LPC convergence failure"
             )
-
         for i in range(self.n_formants):
             valid = frequencies[i] > 0
             if np.sum(valid) > 5:
@@ -116,7 +114,6 @@ class FormantAnalyzer:
                     frequencies[i, valid] = medfilt(
                         frequencies[i, valid], kernel_size=kernel
                     )
-
         n_defaults = len(AudioConstants.DEFAULT_FORMANT_FREQS)
         mean_frequencies = np.zeros(self.n_formants)
         mean_bandwidths = np.zeros(self.n_formants)
@@ -127,22 +124,26 @@ class FormantAnalyzer:
                 mean_bandwidths[i] = np.median(bandwidths[i, valid])
             elif i < n_defaults:
                 mean_frequencies[i] = AudioConstants.DEFAULT_FORMANT_FREQS[i]
-                mean_bandwidths[i] = (
-                    AudioConstants.DEFAULT_FORMANT_BANDWIDTHS[i]
-                )
+                mean_bandwidths[i] = AudioConstants.DEFAULT_FORMANT_BANDWIDTHS[
+                    i
+                ]
             else:
                 mean_frequencies[i] = 500.0 * (i + 1)
                 mean_bandwidths[i] = 100.0
-
         logger.info(
-            f"Formant analysis complete: "
-            f"F1={mean_frequencies[0]:.0f}Hz, "
-            f"F2={mean_frequencies[1]:.0f}Hz"
+            f"Formant analysis complete: F1={mean_frequencies[0]:.0f}Hz, F2={mean_frequencies[1]:.0f}Hz"
         )
-
         return FormantTrack(
             frequencies, bandwidths, mean_frequencies, mean_bandwidths
         )
+
+    def _get_hamming_window(self, length: int) -> np.ndarray:
+        cached = self._window_cache.get(length)
+        if cached is not None:
+            return cached
+        generated = get_window("hamming", length)
+        self._window_cache[length] = generated
+        return generated
 
     def _levinson_durbin(
         self, frame: np.ndarray, order: int
@@ -150,22 +151,18 @@ class FormantAnalyzer:
         autocorrelation = np.correlate(frame, frame, mode="full")
         autocorrelation = autocorrelation[len(frame) - 1 :]
         autocorrelation = autocorrelation[: order + 1]
-
         if autocorrelation[0] < AudioConstants.EPSILON:
             return None
-
         try:
             coefficients = np.zeros(order + 1)
             coefficients[0] = 1.0
             prediction_error = autocorrelation[0]
-
             for i in range(1, order + 1):
                 reflection_coeff = (
                     -np.sum(coefficients[1:i] * autocorrelation[i - 1 : 0 : -1])
                     - autocorrelation[i]
                 )
                 reflection_coeff /= prediction_error
-
                 updated = coefficients.copy()
                 updated[1:i] = (
                     coefficients[1:i]
@@ -173,7 +170,6 @@ class FormantAnalyzer:
                 )
                 updated[i] = reflection_coeff
                 coefficients = updated
-
                 prediction_error *= 1.0 - reflection_coeff * reflection_coeff
                 if prediction_error <= 0:
                     return None
@@ -186,7 +182,6 @@ class FormantAnalyzer:
     ) -> Tuple[np.ndarray, np.ndarray]:
         roots = np.roots(lpc_coefficients)
         roots = roots[np.imag(roots) >= 0]
-
         angles = np.angle(roots)
         frequencies = angles * sample_rate / (2.0 * np.pi)
         bandwidths = (
@@ -194,7 +189,6 @@ class FormantAnalyzer:
             / (2.0 * np.pi)
             * np.log(np.abs(roots) + AudioConstants.EPSILON)
         )
-
         valid = (
             (frequencies > 90)
             & (frequencies < sample_rate / 2 - 50)
@@ -203,6 +197,5 @@ class FormantAnalyzer:
         )
         frequencies = frequencies[valid]
         bandwidths = bandwidths[valid]
-
         sort_order = np.argsort(frequencies)
-        return frequencies[sort_order], bandwidths[sort_order]
+        return (frequencies[sort_order], bandwidths[sort_order])

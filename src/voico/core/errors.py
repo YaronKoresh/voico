@@ -1,49 +1,56 @@
+from typing import List, Optional, Sequence
+
+
 class VoicoError(Exception):
-    def __init__(self, message: str, recovery_suggestions: list = None):
+    def __init__(
+        self,
+        message: str,
+        recovery_suggestions: Optional[Sequence[str]] = None,
+    ):
         super().__init__(message)
         self.message = message
-        self.recovery_suggestions = recovery_suggestions or []
+        self.recovery_suggestions: List[str] = list(recovery_suggestions or [])
 
-    def with_suggestions(self, suggestions: list) -> "VoicoError":
-        self.recovery_suggestions = suggestions
+    def with_suggestions(self, suggestions: Sequence[str]) -> "VoicoError":
+        self.recovery_suggestions = list(suggestions)
         return self
 
 
 class AudioLoadError(VoicoError):
-    pass
+    __slots__ = ()
 
 
 class AudioSaveError(VoicoError):
-    pass
+    __slots__ = ()
 
 
 class AnalysisError(VoicoError):
-    pass
+    __slots__ = ()
 
 
 class PitchDetectionError(AnalysisError):
-    pass
+    __slots__ = ()
 
 
 class FormantAnalysisError(AnalysisError):
-    pass
+    __slots__ = ()
 
 
 class SpectralAnalysisError(AnalysisError):
-    pass
+    __slots__ = ()
 
 
 class ProfileQualityError(AnalysisError):
-    pass
+    __slots__ = ()
 
 
 class ConversionError(VoicoError):
-    pass
+    __slots__ = ()
 
 
 class MatchingError(ConversionError):
-    pass
+    __slots__ = ()
 
 
 class ValidationError(ConversionError):
-    pass
+    __slots__ = ()
