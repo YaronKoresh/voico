@@ -9,11 +9,11 @@ import scipy.signal
 
 from .analysis.profile import VoiceAnalysisEngine
 from .core.config import QualitySettings
-from .core.constants import AudioConstants
 from .core.errors import AnalysisError, ProfileQualityError
 from .core.types import VoiceProfile
+from .dsp.phase import PhaseProcessor
 from .quality.diagnostic import DiagnosticLogger
-from .quality.quality_score import QualityScorer
+from .quality.quality_score import ConversionQualityScore, QualityScorer
 
 logger = logging.getLogger(__name__)
 ProgressCallback = Callable[[str, float], None]
@@ -41,11 +41,9 @@ class PipelineContext:
     stages_timing: Dict[str, float] = field(default_factory=dict)
     source_profile: Optional[VoiceProfile] = None
     target_profile: Optional[VoiceProfile] = None
-    quality_score: Optional["ConversionQualityScore"] = None
+    quality_score: Optional[ConversionQualityScore] = None
     diagnostic_logger: Optional[DiagnosticLogger] = None
 
-
-# helpers
 
 def _emit(ctx: PipelineContext, step: str, fraction: float) -> None:
     if ctx.on_progress is not None:
@@ -75,8 +73,6 @@ def _compute_spectral_centroid(audio: np.ndarray, sr: int, n_fft: int) -> float:
         return 0.0
     return float(np.sum(freqs * spectrum) / total)
 
-
-# pipeline stages
 
 class LoadStage:
     def execute(self, ctx: PipelineContext) -> PipelineContext:
@@ -123,7 +119,7 @@ class AnalysisStage:
         t0 = time.perf_counter()
         _emit(ctx, "Analyzing source voice", 0.08)
         try:
-            self._engine.sample_rate = ctx.sample_rate  # type: ignore
+            self._engine.sample_rate = ctx.sample_rate
             ctx.source_profile = self._engine.build(ctx.audio, "Source")
             quality = self._quality_scorer.score_profile(ctx.source_profile)
             ctx.quality_score = quality
@@ -270,12 +266,12 @@ class ShiftingStage:
 class MetricsStage:
     def execute(self, ctx: PipelineContext) -> PipelineContext:
         t0 = time.perf_counter()
-        ctx.snr_db = _compute_snr(ctx.audio, ctx.output_audio)  # type: ignore
+        ctx.snr_db = _compute_snr(ctx.audio, ctx.output_audio)
         in_centroid = _compute_spectral_centroid(
-            ctx.audio, ctx.sample_rate, ctx.n_fft  # type: ignore
+            ctx.audio, ctx.sample_rate, ctx.n_fft
         )
         out_centroid = _compute_spectral_centroid(
-            ctx.output_audio, ctx.sample_rate, ctx.n_fft  # type: ignore
+            ctx.output_audio, ctx.sample_rate, ctx.n_fft
         )
         if in_centroid > 1e-10:
             ctx.spectral_centroid_deviation = (
@@ -298,14 +294,14 @@ class OutputStage:
         try:
             from .utils.audio_io import normalize_audio, save_audio
 
-            ctx.output_audio = normalize_audio(ctx.output_audio)  # type: ignore
+            ctx.output_audio = normalize_audio(ctx.output_audio)
             save_audio(
                 ctx.output_path,
-                ctx.output_audio,  # type: ignore
-                ctx.sample_rate,  # type: ignore
+                ctx.output_audio,
+                ctx.sample_rate,
                 ctx.bit_depth,
             )
-            ctx.output_duration = len(ctx.output_audio) / ctx.sample_rate  # type: ignore
+            ctx.output_duration = len(ctx.output_audio) / ctx.sample_rate
             if ctx.diagnostic_logger:
                 ctx.diagnostic_logger.log_event(
                     "output",

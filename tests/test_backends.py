@@ -1,4 +1,8 @@
-from voico.backends import get_backend_info, LIBROSA_AVAILABLE, SOUNDFILE_AVAILABLE
+from voico.backends import (
+    LIBROSA_AVAILABLE,
+    SOUNDFILE_AVAILABLE,
+    get_backend_info,
+)
 
 
 def test_backend_info_keys() -> None:

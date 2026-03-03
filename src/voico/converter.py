@@ -4,33 +4,29 @@ import os
 from concurrent.futures import ThreadPoolExecutor
 from typing import Callable, List, Optional, Tuple
 
-import numpy as np
-
 from .analysis.profile import VoiceAnalysisEngine
 from .core.config import ConversionQuality, QualitySettings
 from .core.constants import AudioConstants
 from .core.errors import AnalysisError, ConversionError, ProfileQualityError
 from .core.types import ConversionReport
 from .dsp.phase import PhaseProcessor
-from .stream.streamer import VoiceStreamProcessor
-from .quality.diagnostic import DiagnosticLogger
-
 from .pipeline import (
-    Pipeline,
-    PipelineContext,
-    LoadStage,
     AnalysisStage,
+    LoadStage,
     MatchingStage,
-    ShiftingStage,
     MetricsStage,
     OutputStage,
+    Pipeline,
+    PipelineContext,
+    ShiftingStage,
 )
+from .quality.diagnostic import DiagnosticLogger
+from .stream.streamer import VoiceStreamProcessor
 
 logger = logging.getLogger(__name__)
 ProgressCallback = Callable[[str, float], None]
 
 
-# primary converter class
 class VoiceConverter:
     def __init__(
         self, quality: ConversionQuality = ConversionQuality.BALANCED

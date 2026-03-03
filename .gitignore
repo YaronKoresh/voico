@@ -58,10 +58,8 @@
 /site
 ENV/
 MANIFEST
-__marimo__/
-marimo/_lsp/
-marimo/_static/
 Thumbs.db
+__marimo__/
 __pycache__/
 __pypackages__/
 audit_output.txt
@@ -87,6 +85,8 @@ ipython_config.py
 lib/
 lib64/
 local_settings.py
+marimo/_lsp/
+marimo/_static/
 models/
 nosetests.xml
 parts/
