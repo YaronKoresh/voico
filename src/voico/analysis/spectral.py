@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import Optional
 
 import numpy as np
 import scipy.signal as signal
@@ -43,7 +43,7 @@ class SpectralAnalyzer:
 
     def compute_harmonic_stats(
         self, audio: np.ndarray, f0: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         magnitude = self._get_magnitude(audio)
         return self._compute_harmonic_stats_core(magnitude, f0)
 
@@ -54,12 +54,12 @@ class SpectralAnalyzer:
 
     def compute_harmonic_stats_with_magnitude(
         self, magnitude: np.ndarray, f0: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         return self._compute_harmonic_stats_core(magnitude, f0)
 
     def _compute_harmonic_stats_core(
         self, magnitude: np.ndarray, f0: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         frequency_bins = np.fft.rfftfreq(self.n_fft, 1 / self.sample_rate)
         freq_resolution = frequency_bins[1] if len(frequency_bins) > 1 else 1.0
         n_frames = min(magnitude.shape[1], len(f0))

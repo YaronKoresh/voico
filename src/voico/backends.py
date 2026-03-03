@@ -1,8 +1,9 @@
+import importlib
 import logging
 
 _logger = logging.getLogger(__name__)
 try:
-    import librosa
+    importlib.util.find_spec("librosa")
 
     LIBROSA_AVAILABLE = True
 except ImportError:
@@ -11,7 +12,7 @@ except ImportError:
         "librosa is not installed; scipy/numpy fallbacks will be used"
     )
 try:
-    import soundfile
+    importlib.util.find_spec("soundfile")
 
     SOUNDFILE_AVAILABLE = True
 except ImportError:

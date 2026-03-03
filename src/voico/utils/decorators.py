@@ -2,7 +2,7 @@ import asyncio
 import functools
 import logging
 import time
-from typing import Any, Callable, Tuple, Type, TypeVar
+from typing import Any, Callable, TypeVar
 
 from voico.utils._internals import timer
 
@@ -49,7 +49,7 @@ class CircuitBreaker:
 def with_retry(
     max_attempts: int = 3,
     delay: float = 1.0,
-    exceptions: Tuple[Type[BaseException], ...] = (Exception,),
+    exceptions: tuple[type[BaseException], ...] = (Exception,),
 ) -> Callable[[Callable[..., T]], Callable[..., T]]:
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         @functools.wraps(func)
@@ -81,7 +81,7 @@ def with_retry(
 def with_async_retry(
     max_attempts: int = 3,
     delay: float = 1.0,
-    exceptions: Tuple[Type[BaseException], ...] = (Exception,),
+    exceptions: tuple[type[BaseException], ...] = (Exception,),
 ) -> Callable[[Callable[..., T]], Callable[..., T]]:
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         @functools.wraps(func)
@@ -112,7 +112,7 @@ def with_async_retry(
 
 def error_boundary(
     fallback: Any = None,
-    handled_exceptions: Tuple[Type[BaseException], ...] = (Exception,),
+    handled_exceptions: tuple[type[BaseException], ...] = (Exception,),
     reraise_unhandled: bool = True,
 ) -> Callable:
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:

@@ -1,5 +1,4 @@
 import logging
-from typing import Tuple
 
 import numpy as np
 
@@ -68,7 +67,7 @@ class PitchAnalyzer:
 
     def _autocorrelation_detect(
         self, audio: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         n_frames = len(audio) // self.hop_length
         f0 = np.full(n_frames, np.nan)
         confidence = np.zeros(n_frames)

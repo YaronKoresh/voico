@@ -1,5 +1,5 @@
 import logging
-from typing import Optional, Tuple
+from typing import Optional
 
 import numpy as np
 from scipy.signal import butter, get_window, medfilt, sosfiltfilt
@@ -179,7 +179,7 @@ class FormantAnalyzer:
 
     def _lpc_to_formants(
         self, lpc_coefficients: np.ndarray, sample_rate: int
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         roots = np.roots(lpc_coefficients)
         roots = roots[np.imag(roots) >= 0]
         angles = np.angle(roots)

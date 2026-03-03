@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Dict
 
 import numpy as np
 
@@ -47,4 +46,4 @@ class ConversionReport:
     output_duration_seconds: float
     snr_db: float
     spectral_centroid_deviation: float
-    stages_timing: Dict[str, float]
+    stages_timing: dict[str, float]

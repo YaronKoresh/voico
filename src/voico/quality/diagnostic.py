@@ -2,7 +2,7 @@ import json
 import logging
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any
 
 
 @dataclass
@@ -10,7 +10,7 @@ class DiagnosticEvent:
     timestamp: str
     stage: str
     event_type: str
-    data: Dict[str, Any]
+    data: dict[str, Any]
 
 
 @dataclass
@@ -22,18 +22,18 @@ class PipelineDiagnostics:
     start_time: str
     end_time: str
     total_duration_seconds: float
-    stage_timings: Dict[str, float] = field(default_factory=dict)
-    quality_scores: Dict[str, float] = field(default_factory=dict)
-    validation_results: Dict[str, Any] = field(default_factory=dict)
-    errors: List[str] = field(default_factory=list)
-    warnings: List[str] = field(default_factory=list)
-    events: List[DiagnosticEvent] = field(default_factory=list)
+    stage_timings: dict[str, float] = field(default_factory=dict)
+    quality_scores: dict[str, float] = field(default_factory=dict)
+    validation_results: dict[str, Any] = field(default_factory=dict)
+    errors: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    events: list[DiagnosticEvent] = field(default_factory=list)
 
     def to_json(self) -> str:
         data = asdict(self)
         return json.dumps(data, indent=2, default=str)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
 
@@ -74,7 +74,7 @@ class DiagnosticLogger:
         )
 
     def log_validation(
-        self, component_name: str, passed: bool, issues: List[str]
+        self, component_name: str, passed: bool, issues: list[str]
     ) -> None:
         self.diagnostics.validation_results[component_name] = {
             "passed": passed,
@@ -98,7 +98,7 @@ class DiagnosticLogger:
         self.logger.warning(f"[{self.pipeline_id}] {stage}: {warning_message}")
 
     def log_event(
-        self, stage: str, event_type: str, data: Dict[str, Any]
+        self, stage: str, event_type: str, data: dict[str, Any]
     ) -> None:
         event = DiagnosticEvent(
             timestamp=datetime.now().isoformat(),

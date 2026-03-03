@@ -2,9 +2,7 @@ import asyncio
 import logging
 import os
 from concurrent.futures import ThreadPoolExecutor
-from typing import Callable, List, Optional, Tuple
-
-import numpy as np
+from typing import Callable, Optional
 
 from .analysis.profile import VoiceAnalysisEngine
 from .core.config import ConversionQuality, QualitySettings
@@ -12,25 +10,23 @@ from .core.constants import AudioConstants
 from .core.errors import AnalysisError, ConversionError, ProfileQualityError
 from .core.types import ConversionReport
 from .dsp.phase import PhaseProcessor
-from .stream.streamer import VoiceStreamProcessor
-from .quality.diagnostic import DiagnosticLogger
-
 from .pipeline import (
-    Pipeline,
-    PipelineContext,
-    LoadStage,
     AnalysisStage,
+    LoadStage,
     MatchingStage,
-    ShiftingStage,
     MetricsStage,
     OutputStage,
+    Pipeline,
+    PipelineContext,
+    ShiftingStage,
 )
+from .quality.diagnostic import DiagnosticLogger
+from .stream.streamer import VoiceStreamProcessor
 
 logger = logging.getLogger(__name__)
 ProgressCallback = Callable[[str, float], None]
 
 
-# primary converter class
 class VoiceConverter:
     def __init__(
         self, quality: ConversionQuality = ConversionQuality.BALANCED
@@ -121,14 +117,14 @@ class VoiceConverter:
 
     def process_batch(
         self,
-        file_pairs: List[Tuple[str, str]],
+        file_pairs: list[tuple[str, str]],
         pitch_shift: float = 0.0,
         formant_shift: float = 1.0,
         target_path: Optional[str] = None,
         bit_depth: int = 16,
         on_file_progress: Optional[Callable[[int, int, str], None]] = None,
-    ) -> List[str]:
-        results: List[str] = []
+    ) -> list[str]:
+        results: list[str] = []
         total = len(file_pairs)
         for idx, (inp, out) in enumerate(file_pairs):
             if on_file_progress is not None:
@@ -172,13 +168,13 @@ class VoiceConverter:
 
     async def aprocess_batch(
         self,
-        file_pairs: List[Tuple[str, str]],
+        file_pairs: list[tuple[str, str]],
         pitch_shift: float = 0.0,
         formant_shift: float = 1.0,
         target_path: Optional[str] = None,
         bit_depth: int = 16,
         on_file_progress: Optional[Callable[[int, int, str], None]] = None,
-    ) -> List[str]:
+    ) -> list[str]:
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(
             self._executor,

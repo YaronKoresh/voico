@@ -1,7 +1,7 @@
 import logging
 import os
 from math import gcd
-from typing import Dict, Optional, Tuple
+from typing import Optional
 
 import numpy as np
 import scipy.io.wavfile as wav
@@ -21,7 +21,7 @@ SUPPORTED_EXTENSIONS = {".wav", ".flac", ".ogg", ".mp3", ".aiff", ".aif"}
 
 def load_audio(
     path: str, target_sr: Optional[int] = None
-) -> Tuple[np.ndarray, int]:
+) -> tuple[np.ndarray, int]:
     try:
         if LIBROSA_AVAILABLE:
             (audio, sample_rate) = librosa.load(path, sr=target_sr, mono=True)
@@ -91,10 +91,10 @@ def save_audio(
         raise AudioSaveError(f"Failed to save '{path}': {e}") from e
 
 
-def get_audio_info(path: str) -> Dict[str, object]:
+def get_audio_info(path: str) -> dict[str, object]:
     if not os.path.exists(path):
         raise AudioLoadError(f"File not found: {path}")
-    info: Dict[str, object] = {"path": path}
+    info: dict[str, object] = {"path": path}
     ext = os.path.splitext(path)[1].lower()
     info["format"] = ext.lstrip(".")
     info["file_size_bytes"] = os.path.getsize(path)
