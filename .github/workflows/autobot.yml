@@ -145,7 +145,7 @@ jobs:
         id: ai-summary
         uses: actions/ai-inference@v2
         with:
-          model: openai/gpt-4.1
+          model: openai/gpt-4o
           prompt-file: /tmp/summary_prompt.txt
           max-tokens: 4000
       - name: Build Label Prompt
@@ -246,7 +246,7 @@ jobs:
         id: ai-labels
         uses: actions/ai-inference@v2
         with:
-          model: openai/gpt-4.1-mini
+          model: openai/gpt-4o
           prompt-file: /tmp/label_prompt.txt
           max-tokens: 400
       - name: Manage Project
