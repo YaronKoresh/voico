@@ -2,7 +2,7 @@ import logging
 import os
 import time
 from dataclasses import dataclass, field
-from typing import Callable, Dict, Optional
+from typing import Callable, Optional
 
 import numpy as np
 import scipy.signal
@@ -38,7 +38,7 @@ class PipelineContext:
     output_duration: float = 0.0
     snr_db: float = 0.0
     spectral_centroid_deviation: float = 0.0
-    stages_timing: Dict[str, float] = field(default_factory=dict)
+    stages_timing: dict[str, float] = field(default_factory=dict)
     source_profile: Optional[VoiceProfile] = None
     target_profile: Optional[VoiceProfile] = None
     quality_score: Optional[ConversionQualityScore] = None

@@ -2,7 +2,7 @@ import json
 import os
 import sqlite3
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Optional
 
 import numpy as np
 
@@ -117,7 +117,7 @@ class ProfileStore:
             conn.commit()
         return cursor.rowcount > 0
 
-    def list_profiles(self) -> List[Dict[str, object]]:
+    def list_profiles(self) -> list[dict[str, object]]:
         with self._connect() as conn:
             rows = conn.execute(
                 "SELECT name, sample_rate, f0_mean, created_at FROM profiles ORDER BY created_at DESC"

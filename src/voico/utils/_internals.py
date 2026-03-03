@@ -1,7 +1,7 @@
 import logging
 import time
 from contextlib import contextmanager
-from typing import Dict, Optional
+from typing import Optional
 
 import numpy as np
 
@@ -16,7 +16,7 @@ def safe_divide(a: np.ndarray, b: np.ndarray, fill: float = 0.0) -> np.ndarray:
 
 
 @contextmanager
-def timer(name: str, timing_dict: Optional[Dict[str, float]] = None):
+def timer(name: str, timing_dict: Optional[dict[str, float]] = None):
     start = time.perf_counter()
     try:
         yield

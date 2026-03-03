@@ -9,7 +9,7 @@ description = "Modular Voice Converter"
 readme = "README.md"
 license = {text = "UCSL-1.0"}
 license-files = ["LICENSE"]
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 dependencies = [
     "numpy>=1.21.0",
     "scipy>=1.7.0"
@@ -58,7 +58,7 @@ testpaths = ["tests"]
 addopts = "-q --cov=src/voico --cov-report=term-missing"
 
 [tool.ruff]
-target-version = "py38"
+target-version = "py39"
 line-length = 80
 
 [tool.ruff.lint]

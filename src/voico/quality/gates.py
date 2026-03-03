@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import List
 
 import numpy as np
 
@@ -12,8 +11,8 @@ from ..core.types import FormantTrack, PitchContour, VoiceProfile
 class ValidationResult:
     passed: bool
     score: float
-    issues: List[str]
-    recovery_suggestions: List[str]
+    issues: list[str]
+    recovery_suggestions: list[str]
 
 
 class ValidationGate(ABC):

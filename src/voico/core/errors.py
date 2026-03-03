@@ -1,4 +1,5 @@
-from typing import List, Optional, Sequence
+from collections.abc import Sequence
+from typing import Optional
 
 
 class VoicoError(Exception):
@@ -9,7 +10,7 @@ class VoicoError(Exception):
     ):
         super().__init__(message)
         self.message = message
-        self.recovery_suggestions: List[str] = list(recovery_suggestions or [])
+        self.recovery_suggestions: list[str] = list(recovery_suggestions or [])
 
     def with_suggestions(self, suggestions: Sequence[str]) -> "VoicoError":
         self.recovery_suggestions = list(suggestions)

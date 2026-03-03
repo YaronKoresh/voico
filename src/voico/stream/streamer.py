@@ -1,6 +1,6 @@
 import asyncio
+from collections.abc import AsyncIterator, Iterator
 from concurrent.futures import ThreadPoolExecutor
-from typing import AsyncIterator, Iterator
 
 import numpy as np
 import scipy.signal

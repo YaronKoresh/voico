@@ -1,5 +1,4 @@
 import logging
-from typing import Tuple
 
 import numpy as np
 
@@ -13,7 +12,7 @@ class VoiceMatcher:
     @staticmethod
     def match(
         source: VoiceProfile, target: VoiceProfile
-    ) -> Tuple[float, float]:
+    ) -> tuple[float, float]:
         if source.pitch.f0_mean > 0 and target.pitch.f0_mean > 0:
             pitch_ratio = target.pitch.f0_mean / source.pitch.f0_mean
             semitones = 12.0 * np.log2(pitch_ratio)

@@ -1,4 +1,4 @@
-from typing import Protocol, Tuple, runtime_checkable
+from typing import Protocol, runtime_checkable
 
 import numpy as np
 
@@ -34,7 +34,7 @@ class SpectralAnalyzerProtocol(Protocol):
 
     def compute_harmonic_stats(
         self, audio: np.ndarray, f0: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray]: ...
+    ) -> tuple[np.ndarray, np.ndarray]: ...
 
 
 @runtime_checkable
