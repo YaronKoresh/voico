@@ -1,8 +1,8 @@
 import ast
-import tokenize
 import io
 import pathlib
-import re
+import tokenize
+
 
 def remove_docstrings(source):
     try:
@@ -11,12 +11,15 @@ def remove_docstrings(source):
 
         for node in ast.walk(tree):
             if isinstance(node, (ast.FunctionDef, ast.ClassDef, ast.Module)):
-                if (node.body and isinstance(node.body[0], ast.Expr) and
-                    isinstance(node.body[0].value, (ast.Str, ast.Constant))):
+                if (
+                    node.body
+                    and isinstance(node.body[0], ast.Expr)
+                    and isinstance(node.body[0].value, (ast.Str, ast.Constant))
+                ):
                     stmt = node.body[0]
                     docstring_positions.add((stmt.lineno, stmt.end_lineno))
 
-        lines = source.split('\n')
+        lines = source.split("\n")
         result_lines = []
         for i, line in enumerate(lines, 1):
             skip = False
@@ -27,13 +30,15 @@ def remove_docstrings(source):
             if not skip:
                 result_lines.append(line)
 
-        return '\n'.join(result_lines)
-    except:
+        return "\n".join(result_lines)
+    except Exception as e:
+        print(e)
         return source
+
 
 def strip_comments_and_format(file_path):
     try:
-        with open(file_path, 'r', encoding='utf-8', newline='') as f:
+        with open(file_path, encoding="utf-8", newline="") as f:
             source = f.read()
 
         source = remove_docstrings(source)
@@ -47,7 +52,7 @@ def strip_comments_and_format(file_path):
             result.append((toktype, tokval, start, end, line))
 
         cleaned = tokenize.untokenize(result)
-        lines = cleaned.split('\n')
+        lines = cleaned.split("\n")
 
         blank_count = 0
         final_lines = []
@@ -60,15 +65,16 @@ def strip_comments_and_format(file_path):
                 blank_count = 0
                 final_lines.append(line)
 
-        cleaned = '\n'.join(final_lines)
+        cleaned = "\n".join(final_lines)
 
-        with open(file_path, 'w', encoding='utf-8', newline='') as f:
+        with open(file_path, "w", encoding="utf-8", newline="") as f:
             f.write(cleaned)
 
-        print(f'Stripped: {file_path}')
+        print(f"Stripped: {file_path}")
 
     except Exception as e:
-        print(f'Failed {file_path}: {e}')
+        print(f"Failed {file_path}: {e}")
 
-for p in pathlib.Path('.').rglob('*.py'):
+
+for p in pathlib.Path(".").rglob("*.py"):
     strip_comments_and_format(p)
