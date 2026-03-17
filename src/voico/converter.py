@@ -10,6 +10,7 @@ from .core.constants import AudioConstants
 from .core.errors import AnalysisError, ConversionError, ProfileQualityError
 from .core.types import ConversionReport
 from .dsp.phase import PhaseProcessor
+from .io.audio_io import FileAudioIO
 from .pipeline import (
     AnalysisStage,
     LoadStage,
@@ -87,6 +88,7 @@ class VoiceConverter:
             hop_length=self.hop_length,
             settings=self.settings,
             diagnostic_logger=diagnostic_logger,
+            audio_io=FileAudioIO(),
         )
         try:
             pipeline = self._build_pipeline()

@@ -8,7 +8,6 @@ from .converter import VoiceConverter
 from .core.config import ConversionQuality
 from .core.errors import ProfileQualityError, VoicoError
 from .quality.diagnostic import DiagnosticLogger
-from .utils.audio_io import get_audio_info
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +77,9 @@ def parse_args() -> argparse.Namespace:
 
 
 def print_audio_info(path: str) -> None:
-    info = get_audio_info(path)
+    from .io.audio_io import FileAudioIO
+
+    info = FileAudioIO().get_info(path)
     print(f"File:        {info['path']}")
     print(f"Format:      {info.get('format', 'unknown')}")
     size = int(str(info.get("file_size_bytes", 0)))
