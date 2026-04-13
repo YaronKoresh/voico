@@ -19,7 +19,7 @@ dependencies = [
 full = ["librosa>=0.9.0"]
 server = [
     "fastapi>=0.100.0",
-    "uvicorn>=0.23.0",
+    "uvicorn>=0.39.0",
     "python-multipart>=0.0.6",
 ]
 dev = [
